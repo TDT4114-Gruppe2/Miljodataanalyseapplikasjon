@@ -1,0 +1,29 @@
+# Python-filer som ikke bør pushes
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Miljøfiler
+.env
+venv/
+.envrc
+*.env
+
+# Jupyter Notebook metadata
+.ipynb_checkpoints/
+
+# Store dataset og mellomlagrede filer
+data/raw/
+data/processed/
+data/final/
+
+# Loggfiler og midlertidige filer
+logs/
+*.log
+*.out
+*.tmp
+
+# Systemfiler (OS-spesifikke)
+.DS_Store
+Thumbs.db
