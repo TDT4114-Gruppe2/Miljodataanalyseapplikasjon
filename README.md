@@ -8,6 +8,8 @@ git pull
 # Lage ny branch
 git checkout -b "navn-på-branch"
 
+Navn standard eksempel: "feat(change)/Change-description"
+
 # Commit og pushe branch
 git add .
 git commit -m "beskrivelse av hva du har gjort"
