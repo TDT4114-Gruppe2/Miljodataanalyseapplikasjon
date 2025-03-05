@@ -1,23 +1,23 @@
+import os
+import json
 import pandas as pd
 
-def lagre_data_csv(data, filnavn="vaerdata.csv"):
-    if "properties" in data and "timeseries" in data["properties"]:
-        # Trekker ut relevant data
-        df = pd.json_normalize(data["properties"]["timeseries"])  
+# Lager filsti basert på plasseringen
+script_dir = os.path.dirname(__file__)
+file_path = os.path.join(script_dir, "..", "raw", "vaerdata.json")
 
-        # Lagre til CSV
-        df.to_csv(filnavn, index=False)
-        print(f"Data lagret til {filnavn}")
-    else:
-        print("Feil: Ugyldig datastruktur.")
+# Leser inn data
+with open(file_path, "r") as f:
+    data = json.load(f)
 
-# Sjekk at `data` eksisterer før lagring
-if data:
-    lagre_data_csv(data)
+# Undersøker struktur – henter ut timeseries-delen
+timeseries = data.get("properties", {}).get("timeseries", [])
+df = pd.json_normalize(timeseries)
 
-# Les inn CSV-filen for å sjekke at den fungerer
-try:
-    df = pd.read_csv("vaerdata.csv")
-    print(df.head())  # Viser de første 5 radene
-except FileNotFoundError:
-    print("CSV-filen ble ikke funnet.")
+# Printer de første radene
+print(df.head())
+
+# Lagrer prosessert DataFrame til CSV for analyse
+processed_path = os.path.join(script_dir, "vaerdata_processed.csv")
+df.to_csv(processed_path, index=False)
+print(f"Bearbeidede data lagret til {processed_path}")
