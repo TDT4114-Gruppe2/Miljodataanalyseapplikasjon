@@ -28,7 +28,9 @@ except Exception as e:
     print(f"Uventet feil ved lesing av filen: {e}")
     sys.exit(1)  # Avslutter programmet
 
+# Lager en liste med poster som inneholder "observations"
 data_list = [entry for entry in data.get("data", []) if entry.get("observations")]
+# Skriver ut antall poster i "data_list"
 print("Antall poster i 'data':", len(data_list))
 
 # Opprett en flat liste med relevante felter, inkludert timeOffset
@@ -50,6 +52,8 @@ df = pd.DataFrame(flattened_data)
 print("\nDataFrame-oversikt:")
 print(df.head())  # Viser topp 5 rader for å bekrefte struktur
 
+# SQL-spørringer med Pandas DataFrame
+# Her vil vi se hvor mange lokasjoner vi har og om det er kommet med flere eller færre lokasjoner enn forventet
 print("\n--- Verifiserer at vi har data fra begge lokasjoner ---")
 q_verify_locations = """
 SELECT sourceId, COUNT(*) AS num_entries
@@ -59,6 +63,7 @@ GROUP BY sourceId
 verify_locations = sqldf(q_verify_locations, locals())
 print(verify_locations)
 
+# Sjekker om det er noen manglende verdier i datasettene
 print("\n--- Sjekker etter manglende verdier i datasettene ---")
 q_missing_values = """
 SELECT sourceId, elementId, COUNT(*) AS num_missing
@@ -77,6 +82,7 @@ tromso_path = os.path.join(script_dir, "vaerdata_tromso.csv")
 # index=False for å overskrive tildigere indeksering
 df_tromso.to_csv(tromso_path, index=False)
 print(f"\nLagrer data for Tromsø til: {tromso_path}")
+
 
 # Filtrer for Oslo (sourceId 'SN18700:0')
 df_oslo = df[df['sourceId'] == 'SN18700:0']
