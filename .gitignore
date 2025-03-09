@@ -14,8 +14,8 @@ venv/
 .ipynb_checkpoints/
 
 # Store dataset og mellomlagrede filer
-.csv
-.json
+*.csv
+*.json
 
 # Loggfiler og midlertidige filer
 logs/
