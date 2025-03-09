@@ -33,4 +33,5 @@ print(df.head())
 # Lagre den prosesserte DataFrame til CSV
 processed_path = os.path.join(script_dir, "vaerdata_processed.csv")
 df.to_csv(processed_path, index=False)
+
 print(f"Bearbeidede data lagret til {processed_path}")
