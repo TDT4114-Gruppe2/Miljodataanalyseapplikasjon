@@ -1,150 +1,87 @@
 import os
 import json
+import sys 
 import pandas as pd
-from pandasql import sqldf  # Brukes for SQL-lignende spørringer på DataFrame
+from pandasql import sqldf
 
-# Bestemmer arbeidskatalog: Bruk __file__ hvis tilgjengelig, ellers nåværende arbeidskatalog (f.eks. i Jupyter)
-try:
-    script_dir = os.path.dirname(__file__)
-except NameError:
-    script_dir = os.getcwd()
-
-# Angir filstien til JSON-filen (forutsatt at den ligger i ../raw/vaerdata.json)
+# Definerer arbeidskatalog og path til JSON-fil
+script_dir = os.path.dirname(__file__)
 file_path = os.path.join(script_dir, "..", "raw", "vaerdata.json")
 
-# Generator for å lese JSON-filen linje for linje
-def read_json_generator(filepath):
-    with open(filepath, "r", encoding="utf-8") as f:
-        for line in f:
-            yield line
+try:
+    # Åpner og parser JSON-filen
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    
+    # Sjekker om JSON-filen er tom eller mangler "data"-nøkkel
+    if not data or "data" not in data:
+        raise ValueError("JSON-filen er tom eller mangler 'data'-nøkkel")
 
-# Leser filen linje for linje og setter sammen til én JSON-streng
-lines = read_json_generator(file_path)
-json_str = "".join(lines)
+except (json.JSONDecodeError, ValueError) as e:
+    # Dersom JSON er ugyldig eller tom:
+    print(f"Feil i JSON-filen: {e}")
+    print("Filen må genereres på nytt. Avslutter programmet.")
+    sys.exit(1)  # Avslutter programmet
 
-# Laster JSON-strengen til en Python-datastruktur
-data = json.loads(json_str)
+except Exception as e:
+    # For andre uventede feil, f.eks. problemer med filtilgang
+    print(f"Uventet feil ved lesing av filen: {e}")
+    sys.exit(1)  # Avslutter programmet
 
-# Henter ut "data"-listen og filtrerer bort poster uten observasjoner
 data_list = [entry for entry in data.get("data", []) if entry.get("observations")]
 print("Antall poster i 'data':", len(data_list))
 
-# "Flatten" dataene med list comprehension, inkludert timeOffset
+# Opprett en flat liste med relevante felter, inkludert timeOffset
 flattened_data = [
     {
         "sourceId": entry["sourceId"],
         "referenceTime": entry["referenceTime"],
-        "timeOffset": obs.get("timeOffset", None),  # Inkluderer timeOffset, None hvis mangler
+        "timeOffset": obs.get("timeOffset", None), # Bruker None hvis timeOffset mangler
         "elementId": obs["elementId"],
         "value": obs["value"],
-        "unit": obs.get("unit", "N/A"),
+        "unit": obs.get("unit", "N/A"), # Bruker "N/A" hvis enhet mangler
     }
     for entry in data_list
     for obs in entry["observations"]
 ]
 
-# Konverterer den flate listen til en Pandas DataFrame
+# Konverterer listen til en Pandas DataFrame
 df = pd.DataFrame(flattened_data)
 print("\nDataFrame-oversikt:")
-print(df.head())
+print(df.head())  # Viser topp 5 rader for å bekrefte struktur
 
-# ------------------------------------------------
-#   SQl-demos med pandasql (sqldf)
-#   Vi mapper sourceId til lokasjonsnavn ved hjelp av CASE
-# ------------------------------------------------
-
-# Demo 1: Velg 5 rader fra df med lokasjonsnavn
-print("\n--- Demo 1: Velg 5 rader med lokasjonsnavn ---")
-q1 = """
-SELECT 
-    CASE 
-        WHEN sourceId = 'SN90450:0' THEN 'Tromsø'
-        WHEN sourceId = 'SN18700:0' THEN 'Oslo'
-        ELSE sourceId 
-    END AS location,
-    referenceTime,
-    timeOffset,
-    elementId,
-    value,
-    unit
+print("\n--- Verifiserer at vi har data fra begge lokasjoner ---")
+q_verify_locations = """
+SELECT sourceId, COUNT(*) AS num_entries
 FROM df
-LIMIT 5
+GROUP BY sourceId
 """
-demo1 = sqldf(q1, locals())
-print(demo1)
+verify_locations = sqldf(q_verify_locations, locals())
+print(verify_locations)
 
-# Demo 2: Filtrer for temperaturdata (elementId som inneholder 'air_temperature') med lokasjonsnavn
-print("\n--- Demo 2: Filtrer for air_temperature med lokasjonsnavn ---")
-q2 = """
-SELECT
-    CASE 
-        WHEN sourceId = 'SN90450:0' THEN 'Tromsø'
-        WHEN sourceId = 'SN18700:0' THEN 'Oslo'
-        ELSE sourceId 
-    END AS location,
-    referenceTime,
-    elementId,
-    value,
-    unit
+print("\n--- Sjekker etter manglende verdier i datasettene ---")
+q_missing_values = """
+SELECT sourceId, elementId, COUNT(*) AS num_missing
 FROM df
-WHERE elementId LIKE '%air_temperature%'
-ORDER BY referenceTime DESC
-LIMIT 5
-"""
-demo2 = sqldf(q2, locals())
-print(demo2)
-
-# Demo 3: Gruppér data etter sourceId og elementId, og beregn gjennomsnittlig value med lokasjonsnavn
-print("\n--- Demo 3: Gjennomsnitt per kilde og element med lokasjonsnavn ---")
-q3 = """
-SELECT
-    CASE 
-        WHEN sourceId = 'SN90450:0' THEN 'Tromsø'
-        WHEN sourceId = 'SN18700:0' THEN 'Oslo'
-        ELSE sourceId 
-    END AS location,
-    elementId,
-    AVG(value) AS avg_value
-FROM df
+WHERE value IS NULL
 GROUP BY sourceId, elementId
-ORDER BY location, elementId
-LIMIT 10
 """
-demo3 = sqldf(q3, locals())
-print(demo3)
+missing_values = sqldf(q_missing_values, locals())
+print(missing_values)
 
-# Demo 4: Summer nedbør per referenceTime og per lokasjon for elementId 'sum(precipitation_amount P1D)'
-print("\n--- Demo 4: Summer nedbør per referenceTime med lokasjonsnavn ---")
-q4 = """
-SELECT
-    CASE 
-        WHEN sourceId = 'SN90450:0' THEN 'Tromsø'
-        WHEN sourceId = 'SN18700:0' THEN 'Oslo'
-        ELSE sourceId 
-    END AS location,
-    referenceTime,
-    SUM(value) AS daily_precipitation
-FROM df
-WHERE elementId = 'sum(precipitation_amount P1D)'
-GROUP BY sourceId, referenceTime
-ORDER BY referenceTime DESC
-LIMIT 5
-"""
-demo4 = sqldf(q4, locals())
-print(demo4)
 
-# ------------------------------------------------
-#   Splitting av DataFrame til to CSV-filer basert på sourceId
-# ------------------------------------------------
-
-# Filtrér for Tromsø (sourceId 'SN90450:0')
+# Filtrer for Tromsø (sourceId 'SN90450:0')
 df_tromso = df[df['sourceId'] == 'SN90450:0']
+# Lagrer data for Tromsø til en CSV-fil i samme mappe som scriptet
 tromso_path = os.path.join(script_dir, "vaerdata_tromso.csv")
+# index=False for å overskrive tildigere indeksering
 df_tromso.to_csv(tromso_path, index=False)
 print(f"\nLagrer data for Tromsø til: {tromso_path}")
 
-# Filtrér for Oslo (sourceId 'SN18700:0')
+# Filtrer for Oslo (sourceId 'SN18700:0')
 df_oslo = df[df['sourceId'] == 'SN18700:0']
+# Lagrer data for Oslo til en CSV-fil i samme mappe som scriptet
 oslo_path = os.path.join(script_dir, "vaerdata_oslo.csv")
+# index=False for å overskrive tildigere indeksering
 df_oslo.to_csv(oslo_path, index=False)
 print(f"Lagrer data for Oslo til: {oslo_path}")
