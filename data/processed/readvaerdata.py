@@ -54,6 +54,7 @@ print(df.head())  # Viser topp 5 rader for å bekrefte struktur
 
 # SQL-spørringer med Pandas DataFrame
 # Her vil vi se hvor mange lokasjoner vi har og om det er kommet med flere eller færre lokasjoner enn forventet
+# I tillegg vil det skrives ut antall føringer per lokasjon
 print("\n--- Verifiserer at vi har data fra begge lokasjoner ---")
 q_verify_locations = """
 SELECT sourceId, COUNT(*) AS num_entries
@@ -63,16 +64,16 @@ GROUP BY sourceId
 verify_locations = sqldf(q_verify_locations, locals())
 print(verify_locations)
 
-# Sjekker om det er noen manglende verdier i datasettene
-print("\n--- Sjekker etter manglende verdier i datasettene ---")
-q_missing_values = """
-SELECT sourceId, elementId, COUNT(*) AS num_missing
+# Antall unike dager med data per by
+q_unique_days = """
+SELECT sourceId, COUNT(DISTINCT referenceTime) AS unique_days
 FROM df
-WHERE value IS NULL
-GROUP BY sourceId, elementId
+GROUP BY sourceId
 """
-missing_values = sqldf(q_missing_values, locals())
-print(missing_values)
+
+unique_days = sqldf(q_unique_days, locals())
+print("\n--- Antall unike dager med data per by ---")
+print(unique_days)
 
 
 # Filtrer for Tromsø (sourceId 'SN90450:0')
