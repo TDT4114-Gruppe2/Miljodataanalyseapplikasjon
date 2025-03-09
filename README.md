@@ -12,8 +12,14 @@ source venv/bin/activate  # (eller "venv\Scripts\activate" på Windows)
 
 pip install -r requirements.txt
 
-## Kjør deretter følgende kommando for å hente data fra API
-python3 data/raw/vaerdata.py
+## Kjør deretter følgende kode for å hente data fra API
+vaerdata.py
+
+## Kjør følgende kode formattere dataene til CSV
+readvaerdata.py
+
+## Kjør følgende kode for å se alle poster uten verdier
+findmissingdata.py
 
 # Testing
 
