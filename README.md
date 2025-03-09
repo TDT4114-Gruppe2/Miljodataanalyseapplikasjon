@@ -12,8 +12,8 @@ source venv/bin/activate  # (eller "venv\Scripts\activate" på Windows)
 
 pip install -r requirements.txt
 
-## 
-
+## Kjør deretter følgende kommando for å hente data fra API
+python3 data/raw/vaerdata.py
 
 # Utvikling av prosjeketet
 
