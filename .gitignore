@@ -14,9 +14,8 @@ venv/
 .ipynb_checkpoints/
 
 # Store dataset og mellomlagrede filer
-data/raw/
-data/processed/
-data/final/
+.csv
+.json
 
 # Loggfiler og midlertidige filer
 logs/
@@ -27,3 +26,4 @@ logs/
 # Systemfiler (OS-spesifikke)
 .DS_Store
 Thumbs.db
+
