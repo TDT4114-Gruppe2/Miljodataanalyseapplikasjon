@@ -1,26 +1,28 @@
 import requests
 import json
+import os
+from dotenv import load_dotenv
 
-# Klient-ID for autentisering
-client_id = "5173c281-ddc9-4f8d-88bb-4b752c31c043"
+# Last inn miljøvariabler
+env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
+load_dotenv(env_path)
+client_id = os.getenv("CLIENT_ID")
 
-# Define endpoint and parameters
-endpoint = 'https://frost.met.no/observations/v0.jsonld'
-parameters = {
-    'sources': 'SN18700,SN90450',
-    'elements': 'mean(air_temperature P1D),min(air_temperature P1D),max(air_temperature P1D),sum(precipitation_amount P1D),mean(wind_speed P1D)',
-    'referencetime': '2000-01-01/2024-12-31',
-}
+def fetch_weather_data(client_id):
+    """Henter værdata fra Frost API"""
+    endpoint = 'https://frost.met.no/observations/v0.jsonld'
+    parameters = {
+        'sources': 'SN18700,SN90450',
+        'elements': 'mean(air_temperature P1D),min(air_temperature P1D),max(air_temperature P1D),sum(precipitation_amount P1D),mean(wind_speed P1D)',
+        'referencetime': '2000-01-01/2024-12-31',
+    }
 
-# Issue an HTTP GET request
-r = requests.get(endpoint, params=parameters, auth=(client_id, ''))
-r.raise_for_status()  # Sjekker for HTTP-feil
+    response = requests.get(endpoint, params=parameters, auth=(client_id, ''))
+    response.raise_for_status()  
+    return response.json()
 
-# Extract JSON data
-data = r.json()
-
-# Lagre JSON-data til fil
-with open("data/raw/vaerdata.json", "w") as f:
-    json.dump(data, f, indent=4)
-    
-print("Data lagret til data/raw/vaerdata.json")
+def write_json_to_file(json_data, filename):
+    """Lagrer JSON-data til en fil"""
+    with open(filename, "w", encoding="utf-8") as f:
+        for chunk in json.JSONEncoder(indent=4).iterencode(json_data):
+            f.write(chunk)
