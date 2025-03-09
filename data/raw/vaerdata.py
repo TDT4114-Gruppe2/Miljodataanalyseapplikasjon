@@ -1,8 +1,16 @@
 import requests
 import json
+import os
+from dotenv import load_dotenv
+
+# Finn stien til .env-filen (to nivåer opp)
+env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
+
+# Last inn variabler fra spesifisert .env-fil
+load_dotenv(env_path)
 
 # Klient-ID for autentisering (Frost API krever en autentiseringsnøkkel)
-client_id = "5173c281-ddc9-4f8d-88bb-4b752c31c043"
+client_id = os.getenv("CLIENT_ID")
 
 # Definer API-endepunktet og parametere for forespørselen
 endpoint = 'https://frost.met.no/observations/v0.jsonld'
