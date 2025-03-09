@@ -22,5 +22,5 @@ data = r.json()
 # Lagre JSON-data til fil
 with open("data/raw/vaerdata.json", "w") as f:
     json.dump(data, f, indent=4)
-
+    
 print("Data lagret til data/raw/vaerdata.json")
