@@ -15,6 +15,13 @@ pip install -r requirements.txt
 ## Kjør deretter følgende kommando for å hente data fra API
 python3 data/raw/vaerdata.py
 
+# Testing
+
+## Hvordan kjøre tester
+Kjør hver av test-filene i mappen /tests for å sjekke at hver av filene fungerer som de skal.
+
+Dersom terminal skriver OK tilbake er testen godkjent.
+
 # Utvikling av prosjeketet
 
 ## Hente endringer
