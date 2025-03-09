@@ -12,7 +12,9 @@ Navn standard eksempel: "feat(change)/Change-description"
 
 ## Commit og pushe branch
 git add .
+
 git commit -m "beskrivelse av hva du har gjort"
+
 git push
 
 ## Gå tilbake til main etter push
@@ -30,5 +32,7 @@ git branch -r
 
 ## Kjør følgende kommandoer for å laste ned avhengiheter
 python -m venv venv  # (valgfritt, men anbefalt)
+
 source venv/bin/activate  # (eller "venv\Scripts\activate" på Windows)
+
 pip install -r requirements.txt
