@@ -12,15 +12,26 @@ parameters = {
     'referencetime': '2000-01-01/2024-12-31',
 }
 
-# Issue an HTTP GET request
+# Gjør en HTTP GET-forespørsel
 r = requests.get(endpoint, params=parameters, auth=(client_id, ''))
-r.raise_for_status()  # Sjekker for HTTP-feil
+r.raise_for_status()  # Avbryt hvis HTTP-feil oppstår
 
-# Extract JSON data
+# Hent JSON-data fra svaret
 data = r.json()
 
-# Lagre JSON-data til fil
-with open("data/raw/vaerdata.json", "w") as f:
-    json.dump(data, f, indent=4)
+# Eksempel på en generator-funksjon for å skrive JSON data "bit for bit"
+def write_json_to_file(json_data, filename):
+    """
+    Skriver data til en fil ved hjelp av en generator
+    for å unngå at hele datastrukturen må konverteres i én stor operasjon.
+    """
+    with open(filename, "w", encoding="utf-8") as f:
+        # json.JSONEncoder(indent=4).iterencode(...) gir en generator
+        # som returnerer JSON i små biter ("chunks").
+        for chunk in json.JSONEncoder(indent=4).iterencode(json_data):
+            f.write(chunk)
+
+# Bruk generator-funksjonen til å lagre data
+write_json_to_file(data, "data/raw/vaerdata.json")
 
 print("Data lagret til data/raw/vaerdata.json")
