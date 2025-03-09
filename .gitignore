@@ -4,18 +4,21 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Har kommentert ut for å ta med .env i git repo
+# .env
+# *.env
+
 # Miljøfiler
-.env
 venv/
 .envrc
-*.env
+
 
 # Jupyter Notebook metadata
 .ipynb_checkpoints/
 
 # Store dataset og mellomlagrede filer
-.csv
-.json
+*.csv
+*.json
 
 # Loggfiler og midlertidige filer
 logs/
@@ -26,4 +29,3 @@ logs/
 # Systemfiler (OS-spesifikke)
 .DS_Store
 Thumbs.db
-

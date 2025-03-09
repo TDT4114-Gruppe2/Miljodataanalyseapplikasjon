@@ -1,5 +1,28 @@
-# Anvendt_Prog
-TDT4114 Anvendt programmering (2025 VÅR)
+# Prosjektbeskrivelse - TDT4114 Anvendt programmering (2025 VÅR)
+Dette prosjektet tar for seg en analyse av værdata fra Oslo og Tromsø fra år 2000 til og med 2024. Hensikter med prosjektet er å lage en appplikasjon som brukes for å se på langsiktige endringer i spesifikke elementer i værmønsteret for de to nevnte byene. Kodens funksjonalitet er skrevet i Python, med flere importerte biblioteker for håndtering av dataene som blir hentet ut.
+
+Dataene som hentes ut er fra meteorologisk institutt som er en offisiell og anerkjent kilde for metorologiske observasjoner i Norge som håndterer Norges historiske værdata. Det er enkelt å hente ut data på JSON-foramt fra deres Frost-API og dataene er av høy kvalitet som et resultat av deres profesjonalitet. For oppgavespesifikk informasjon se noteboks/mappeX.ipynb.
+
+# Hvordan kjøre prosjektet
+
+## Kjør følgende kommandoer for å laste ned avhengigheter
+python -m venv venv  # (valgfritt, men anbefalt)
+
+source venv/bin/activate  # (eller "venv\Scripts\activate" på Windows)
+
+pip install -r requirements.txt
+
+## Kjør deretter følgende kommando for å hente data fra API
+python3 data/raw/vaerdata.py
+
+# Testing
+
+## Hvordan kjøre tester
+Kjør hver av test-filene i mappen /tests for å sjekke at hver av filene fungerer som de skal.
+
+Dersom terminal skriver OK tilbake er testen godkjent.
+
+# Utvikling av prosjeketet
 
 ## Hente endringer
 git pull
@@ -29,10 +52,3 @@ git branch
 
 ## Se alle remote branches
 git branch -r
-
-## Kjør følgende kommandoer for å laste ned avhengiheter
-python -m venv venv  # (valgfritt, men anbefalt)
-
-source venv/bin/activate  # (eller "venv\Scripts\activate" på Windows)
-
-pip install -r requirements.txt
