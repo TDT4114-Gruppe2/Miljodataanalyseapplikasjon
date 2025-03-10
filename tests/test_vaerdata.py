@@ -5,7 +5,7 @@ import sys
 import unittest
 from unittest.mock import patch, MagicMock
 
-# Leggwer til `data/raw/` i sys.path for å kunne importere vaerdata.py
+# Legger til `data/raw/` i sys.path for å kunne importere vaerdata.py
 sys.path.insert(
     0,
     os.path.abspath(
@@ -19,7 +19,7 @@ import vaerdata  # Denne bryter med PEP8, men må defineres etter sys.path
 class TestVaerdata(unittest.TestCase):
     """Testklasse for vaerdata.py."""
 
-    @patch("vaerdata.requests.get")  # Mock API-kall
+    @patch("vaerdata.requests.get")  # Mocker API-kall
     def test_fetch_weather_data(self, mock_get):
         """Tester at API-kallet returnerer forventet JSON-data."""
         mock_response = MagicMock()

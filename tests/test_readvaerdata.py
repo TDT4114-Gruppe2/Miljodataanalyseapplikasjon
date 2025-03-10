@@ -22,7 +22,7 @@ class TestReadVaerdata(unittest.TestCase):
     def test_read_and_process(self, mock_to_csv):
         """Test at readvaerdata.py leser JSON.
 
-        Prosesserer så data til CSV korrekt.
+        Håndterer data til CSV korrekt.
         """
         # Dummy JSON-data som skal leses fra fil.
         dummy_data = {
@@ -39,23 +39,18 @@ class TestReadVaerdata(unittest.TestCase):
 
         dummy_json_str = json.dumps(dummy_data)
 
-        # Patch 'open' slik at lesing av JSON-filen returnerer
+        # 'open' slik at lesing av JSON-filen returnerer
         # dummy_json_str.
         m = mock_open(read_data=dummy_json_str)
         with patch("builtins.open", m):
             # Importer readvaerdata mens patchen er aktiv.
-            # Merk: readvaerdata.py kjører all kode ved import,
-            # så importen vil trigge lesing av JSON og skriving av CSV.
             import readvaerdata
-            # For å teste på nytt om nødvendig, kan vi tvinge en reimport:
+            # Tvinger reimport
             importlib.reload(readvaerdata)
 
-        # Sjekk at to_csv-metoden på DataFrame ble kalt,
-        # dvs. at CSV-fil skriving ble forsøkt.
+        # Sjekker at to_csv-metoden på DataFrame ble kalt.
         self.assertTrue(mock_to_csv.called)
         args, kwargs = mock_to_csv.call_args
-        # Forvent at filnavnet til CSV inneholder
-        # "vaerdata_processed.csv"
         self.assertIn("vaerdata_oslo.csv", args[0])
 
 

@@ -18,7 +18,7 @@ class TestFindMissingData(unittest.TestCase):
         """
         Test at findmissingdata.py leser de riktige CSV-filene.
 
-        Gjør også at utskriftsfilene 'missing_in_both.csv' og
+        Sjekker også at utskriftsfilene 'missing_in_both.csv' og
         'missing_summary.csv' blir skrevet.
         """
         # Dummy-data for Oslo og Tromsø slik at de ikke overlapper
@@ -35,14 +35,14 @@ class TestFindMissingData(unittest.TestCase):
             "value": [15]
         })
 
-        # Side effect for pd.read_csv returnerer dummy-data for to kall
+        # Setter opp mock_read_csv for å returnere dummy-data
         mock_read_csv.side_effect = [df_oslo, df_tromso]
 
-        # Fjern findmissingdata fra sys.modules for å sikre fersk import
+        # Fjerner findmissingdata fra sys.modules for ny import
         if "findmissingdata" in sys.modules:
             del sys.modules["findmissingdata"]
 
-        # Legg til mappen 'data/processed' i sys.path slik at
+        # Legger til mappen 'data/processed' i sys.path slik at
         # vi kan importere modulen
         script_dir = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "../data/processed")
@@ -51,15 +51,15 @@ class TestFindMissingData(unittest.TestCase):
             sys.path.insert(0, script_dir)
 
         # Importer findmissingdata (koden kjøres ved import)
-        import findmissingdata  # noqa: F401
+        import findmissingdata
 
-        # Sjekk at pd.read_csv ble kalt to ganger med forventede filstier
+        # Sjekker at pd.read_csv ble kalt to ganger
         calls = mock_read_csv.call_args_list
         self.assertEqual(len(calls), 2)
         self.assertIn("vaerdata_oslo.csv", calls[0][0][0])
         self.assertIn("vaerdata_tromso.csv", calls[1][0][0])
 
-        # Sjekk at DataFrame.to_csv ble kalt to ganger (én for hver CSV-fil)
+        # Sjekker at DataFrame.to_csv ble kalt to ganger
         self.assertEqual(mock_to_csv.call_count, 2)
         first_call_filename = mock_to_csv.call_args_list[0][0][0]
         second_call_filename = mock_to_csv.call_args_list[1][0][0]
@@ -68,7 +68,7 @@ class TestFindMissingData(unittest.TestCase):
         self.assertEqual(os.path.basename(second_call_filename),
                          "missing_summary.csv")
 
-        # Kombiner alle argumentene fra hvert print-kall til én streng
+        # Kombinerer alle argumentene fra hvert kall til én streng
         printed_lines = [
             " ".join(str(arg) for arg in call.args)
             for call in mock_print.call_args_list

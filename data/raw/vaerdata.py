@@ -10,7 +10,7 @@ env_path = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", ".env")
 )
 
-# Laster inn variabler fra .env-fil
+# Henter variabler fra .env-fil
 load_dotenv(env_path)
 
 # Klient-ID for autentisering (Frost API krever en autentiseringsnøkkel)
@@ -21,8 +21,9 @@ def fetch_weather_data(client_id):
     """Henter værdata fra Frost API."""
     endpoint = "https://frost.met.no/observations/v0.jsonld"
     parameters = {
-        "sources": "SN18700,SN90450",
         # Velger værstasjoner det hentes data fra
+        "sources": "SN18700,SN90450",
+        # Velger måle-elementer
         "elements": (
             "mean(air_temperature P1D),min(air_temperature P1D),"
             "max(air_temperature P1D),sum(precipitation_amount P1D),"
@@ -46,8 +47,8 @@ if __name__ == "__main__":
     # Henter værdata
     data = fetch_weather_data(client_id)
 
-    # Bruk funksjonen til å lagre værdata i en fil
+    # Bruker funksjonen til å lagre værdata i en fil
     write_json_to_file(data, "data/raw/vaerdata.json")
 
-    # Bekreft at data er lagret
+    # Bekrefter at data er lagret
     print("Data lagret til data/raw/vaerdata.json")
