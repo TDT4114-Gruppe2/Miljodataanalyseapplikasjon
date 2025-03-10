@@ -28,7 +28,7 @@ except (json.JSONDecodeError, ValueError) as e:
     sys.exit(1)  # Avslutter programmet
 
 except Exception as e:
-    # For andre uventede feil, f.eks. problemer med filtilgang
+    # Viser uventede feil, f.eks. problemer med filtilgang
     print(f"Uventet feil ved lesing av filen: {e}")
     sys.exit(1)  # Avslutter programmet
 
@@ -38,7 +38,7 @@ data_list = [entry for entry in data.get("data", [])
 # Skriver ut antall poster i "data_list"
 print("Antall poster i 'data':", len(data_list))
 
-# Opprett en flat liste med relevante felter, inkludert timeOffset
+# Opprett en flat liste med ønskede felter, inkludert timeOffset
 flattened_data = [
     {
         "sourceId": entry["sourceId"],
@@ -81,7 +81,7 @@ unique_days = sqldf(q_unique_days, locals())
 print("\n--- Antall unike dager med data per by ---")
 print(unique_days)
 
-# Filtrer for Tromsø (sourceId 'SN90450:0')
+# Filtrer for Tromsø
 df_tromso = df[df["sourceId"] == "SN90450:0"]
 # Lagrer data for Tromsø til en CSV-fil i samme mappe som scriptet
 tromso_path = os.path.join(script_dir, "vaerdata_tromso.csv")
@@ -89,7 +89,7 @@ tromso_path = os.path.join(script_dir, "vaerdata_tromso.csv")
 df_tromso.to_csv(tromso_path, index=False)
 print(f"\nLagrer data for Tromsø til: {tromso_path}")
 
-# Filtrer for Oslo (sourceId 'SN18700:0')
+# Filtrer for Oslo
 df_oslo = df[df["sourceId"] == "SN18700:0"]
 # Lagrer data for Oslo til en CSV-fil i samme mappe som scriptet
 oslo_path = os.path.join(script_dir, "vaerdata_oslo.csv")
