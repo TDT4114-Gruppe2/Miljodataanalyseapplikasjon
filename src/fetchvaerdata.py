@@ -1,3 +1,5 @@
+""" src/fetchvaerdata.py """
+
 import json
 import requests
 
