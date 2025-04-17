@@ -39,25 +39,25 @@ class TemperatureRangeConverter:
             aggfunc="first",
         )
 
-        # Konverter til float
-        t_max = pd.to_numeric(df_piv["max(air_temperature P1D)"], errors="coerce")
-        t_min = pd.to_numeric(df_piv["min(air_temperature P1D)"], errors="coerce")
+        # Konverter til numerisk, beregn differansen og rund til én desimal
+        df_piv["value"] = (
+            pd.to_numeric(df_piv["max(air_temperature P1D)"], errors="coerce")
+            - pd.to_numeric(df_piv["min(air_temperature P1D)"], errors="coerce")
+        ).round(1)
 
-        # Beregn differanse
-        df_piv["value"] = (t_max - t_min).round(1)
-
-        # Tving visningsformat til én desimal (hindrer binær-støy i CSV)
-        df_piv["value"] = df_piv["value"].apply(
-            lambda x: f"{x:.1f}" if pd.notnull(x) else ""
-        )
-
+        # Sett final felter i forventet rekkefølge
         df_out = df_piv.reset_index()
         df_out["elementId"] = "range(air_temperature P1D)"
         df_out["unit"] = "degC"
 
-        return df_out[
-            ["sourceId", "referenceTime", "timeOffset", "elementId", "value", "unit"]
-        ]
+        return df_out[[
+            "sourceId",
+            "referenceTime",
+            "timeOffset",
+            "elementId",
+            "value",
+            "unit",
+        ]]
 
     def _process_city(self, city: str):
         file_path = os.path.join(self.output_dir, f"vaerdata_{city}.csv")
@@ -68,14 +68,9 @@ class TemperatureRangeConverter:
             print(f"Fant ikke {file_path} – hopper over.")
             return
 
-        df_other = df[~df["elementId"].isin([
-            "min(air_temperature P1D)",
-            "max(air_temperature P1D)",
-        ])]
-
         df_range = self._compute_daily_range(df)
         df_final = (
-            pd.concat([df_other, df_range], ignore_index=True)
+            pd.concat([df, df_range], ignore_index=True)
             .sort_values(["referenceTime", "timeOffset", "elementId"])
         )
 
