@@ -5,6 +5,9 @@ Dataene som hentes ut er fra meteorologisk institutt som er en offisiell og aner
 
 # Hvordan kjøre prosjektet
 
+## Innledende informasjon 
+Koden er bygget opp med en kombinasjon av classes definert i egne python filer og notbooks som anvender disse classene
+
 ## Kjør følgende kommandoer for å laste ned avhengigheter
 python -m venv venv  # (valgfritt, men anbefalt)
 
@@ -12,14 +15,20 @@ source venv/bin/activate  # (eller "venv\Scripts\activate" på Windows)
 
 pip install -r requirements.txt
 
-## Kjør deretter følgende kode for å hente data fra API
-vaerdata.py
+## Kjør deretter følgende notebook for å hente data fra API
+getvaerdata.ipynb
+
+Denne benytter class fra fetchvaerdata.py og henter data med APIen.
 
 ## Kjør følgende kode formattere dataene til CSV
-readvaerdata.py
+readvaerdata.ipynb
+
+Denne benytter class fra weatherconverter.py og oversetter all dataen til .csv filer som er letter å lese.
 
 ## Kjør følgende kode for å se alle poster uten verdier
-findmissingdata.py
+findmissingdata.ipynb
+
+Denne benytter class fra missingdatafinder.py og danner to .csv filer, en med oversikt over manglende data og en oppsummering.
 
 # Testing
 
