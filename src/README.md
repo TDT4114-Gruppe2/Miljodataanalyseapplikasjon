@@ -1,16 +1,5 @@
-# Forklaring av filstrukturen
+# src-mappens innhold
 
-## Data
-All innhenting og behandling av data.
+src-mappen inneholder alle klasser som utgjør funksjonaliteten i prosjektet. Det er dette som er kjernen for at prosjektet skal gi ønsket output. Hver klasse har en egen notebook som kjører klassen for å separere funksjonaliteten fra visning av dataene.
 
-## Docs
-Inneholder KI-deklarasjon fra alle gruppemedlemmer og oppgavebeskrivelse.
 
-## Notebooks
-Hvordan oppgavene er løst og utdypende svar på dem.
-
-## Tests
-Alle tester for python-filene.
-
-## Visualization
-Visualisering og plotting av data.
