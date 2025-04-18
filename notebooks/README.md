@@ -4,11 +4,11 @@ Notebooks-mappen inneholder svar på oppgaver og oppsummerende forklaringen for 
 
 ## mappe1
 
-mappe 1 dekkere oppgave 1-3
+mappe 1 dekker oppgave 1-3 og viser til oppretting av prosjektet samt innhenting og håndtering av dataene som skal brukes videre.
 
 ## mappe2
 
-mappe4 dekker oppgave 4-7
+mappe4 dekker oppgave 4-7 som handler om å analysere, visualisere og anvende dataene som ble hentet inn.
 
 ## refleksjonsnotat
 
