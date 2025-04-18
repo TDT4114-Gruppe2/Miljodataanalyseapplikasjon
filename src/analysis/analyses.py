@@ -150,12 +150,9 @@ class DataAnalyzer:
 
         return df_mangler[["date", "timeOffset", "elementId", "mangler"]].reset_index(drop=True)
 
-
-
     """
     Mangelfull funksjon laget for store analyser, men mangler upraktisk kombinering av data
     """
-
 
     def kombiner_variabler_analyse(
         self,
@@ -239,3 +236,64 @@ class DataAnalyzer:
         df_out.index.name = "periode"
         df_out.reset_index(inplace=True)
         return df_out
+
+    def prosentvis_endring(
+            self,
+            by: str,
+            element_id: str,
+            time_offset: str,
+            statistikk: str = "mean",
+            frekvens: str = "D"
+        ) -> pd.DataFrame:
+        """
+        Returnerer prosentvis endring i en valgt statistikk (mean, median, std)
+        mellom påfølgende perioder (dag, måned, år).
+
+        Parametre:
+        - by: f.eks. "oslo"
+        - element_id: f.eks. "mean(air_temperature P1D)"
+        - time_offset: f.eks. "PT0H"
+        - statistikk: "mean", "median" eller "std"
+        - frekvens: "D" (daglig), "ME" (månedlig), "Y" (årlig)
+
+        Returnerer en DataFrame med:
+        - periode
+        - verdi
+        - prosent_endring
+        """
+        if statistikk not in {"mean", "median", "std"}:
+            raise ValueError("statistikk må være 'mean', 'median' eller 'std'")
+        
+        if frekvens not in {"D", "ME", "Y"}:
+            raise ValueError("frekvens må være 'D', 'ME' eller 'Y'")
+
+        df = self.stats._load_city(by)
+        if "referenceTime" not in df.columns:
+            raise KeyError("Kolonnen 'referenceTime' mangler i datasettet")
+        
+        df = df[(df["elementId"] == element_id) & (df["timeOffset"] == time_offset)].copy()
+        df["value"] = pd.to_numeric(df["value"], errors="coerce")
+        df["referenceTime"] = pd.to_datetime(df["referenceTime"], utc=True)
+
+        if df["referenceTime"].isna().all():
+            raise ValueError("Alle verdier i 'referenceTime' er NaT – sjekk kildefilene")
+
+        df.set_index("referenceTime", inplace=True)
+        df.sort_index(inplace=True)
+
+        agg_map = {
+            "mean": df["value"].resample(frekvens).mean,
+            "median": df["value"].resample(frekvens).median,
+            "std": lambda: df["value"].resample(frekvens).std(ddof=0),
+        }
+        agg_series = agg_map[statistikk]()
+
+        df_endring = pd.DataFrame({"verdi": agg_series})
+        df_endring["prosent_endring"] = (
+            df_endring["verdi"].pct_change(fill_method=None) * 100
+        )
+
+        df_endring.index.name = "periode"
+        df_endring = df_endring.reset_index()
+
+        return df_endring.dropna(subset=["verdi", "prosent_endring"]).reset_index(drop=True)
