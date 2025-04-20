@@ -165,7 +165,7 @@ class DataAnalyzer:
         element_id2: str,
         element_id3: str,
         statistic: str = "mean",        # "mean", "median" eller "std"
-        frequency: str = "ME",           # "D", "W", "ME", "Y"
+        frequency: str = "ME",           # "D", "W", "ME", "YE"
         remove_outliers: bool = True,
         start: str | None = None,       # "YYYY-MM" eller "YYYY-MM-DD"
         end: str | None = None,         # samme format som start
@@ -247,7 +247,9 @@ class DataAnalyzer:
             element_id: str,
             time_offset: str,
             statistikk: str = "mean",
-            frekvens: str = "D"
+            frekvens: str = "D",
+            start: str | None = None,
+            end: str | None = None   
         ) -> pd.DataFrame:
         """
         Returnerer prosentvis endring i en valgt statistikk (mean, median, std)
@@ -258,7 +260,7 @@ class DataAnalyzer:
         - element_id: f.eks. "mean(air_temperature P1D)"
         - time_offset: f.eks. "PT0H"
         - statistikk: "mean", "median" eller "std"
-        - frekvens: "D" (daglig), "ME" (månedlig), "Y" (årlig)
+        - frekvens: "D" (daglig), "ME" (månedlig), "YE" (årlig)
 
         Returnerer en DataFrame med:
         - periode
@@ -268,8 +270,8 @@ class DataAnalyzer:
         if statistikk not in {"mean", "median", "std"}:
             raise ValueError("statistikk må være 'mean', 'median' eller 'std'")
         
-        if frekvens not in {"D", "ME", "Y"}:
-            raise ValueError("frekvens må være 'D', 'ME' eller 'Y'")
+        if frekvens not in {"D", "ME", "YE"}:
+            raise ValueError("frekvens må være 'D', 'ME' eller 'YE'")
 
         df = self.stats._load_city(by)
         if "referenceTime" not in df.columns:
@@ -284,6 +286,14 @@ class DataAnalyzer:
 
         df.set_index("referenceTime", inplace=True)
         df.sort_index(inplace=True)
+
+        if start or end:
+            mask = pd.Series(True, index=df.index)
+            if start:
+                mask &= df.index >= pd.to_datetime(start).tz_localize("UTC")
+            if end:
+                mask &= df.index <= pd.to_datetime(end).tz_localize("UTC")
+            df = df[mask]
 
         agg_map = {
             "mean": df["value"].resample(frekvens).mean,
