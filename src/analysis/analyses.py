@@ -20,14 +20,18 @@ class DataAnalyzer:
         self.detector = OutlierDetector()
 
     def finn_outliers_per_maaned(
-            self,        
+            self,
             by: str,
             element_id: str,
-            time_offset: str
+            time_offset: str,
+            vis_tomme_maaneder: bool = False
         ) -> pd.DataFrame:
         """
         Returnerer en DataFrame med oversikt over hvor mange outliers som ble
         fjernet per måned for en gitt by, elementId og timeOffset.
+
+        Parametre:
+        - vis_tomme_maaneder: Hvis True, inkluder også måneder uten outliers.
 
         Kolonner: year_month, outliers_removed, antall_totalt, andel_outliers_%%
         """
@@ -47,12 +51,12 @@ class DataAnalyzer:
             mask = self.detector.detect_iqr(original, extreme=True)
             antall_outliers = int(mask.sum())
 
-            if antall_outliers > 0:
+            if vis_tomme_maaneder or antall_outliers > 0:
                 resultater.append({
                     "year_month": ym,
                     "outliers_removed": antall_outliers,
                     "antall_totalt": len(original),
-                    "andel_outliers_%": round(100 * antall_outliers / len(original), 1),
+                    "andel_outliers_%": round(100 * antall_outliers / len(original), 1) if len(original) > 0 else 0.0,
                 })
 
         return pd.DataFrame(resultater).sort_values("year_month").reset_index(drop=True)
