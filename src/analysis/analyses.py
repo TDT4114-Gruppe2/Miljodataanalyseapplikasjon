@@ -12,7 +12,7 @@ import re
 import pandas as pd
 from outlier_detector import OutlierDetector
 from monthly_statistics import MonthlyStatistics
-
+import calendar
 
 class DataAnalyzer:
     def __init__(self, data_dir):
@@ -20,14 +20,18 @@ class DataAnalyzer:
         self.detector = OutlierDetector()
 
     def finn_outliers_per_maaned(
-            self,        
+            self,
             by: str,
             element_id: str,
-            time_offset: str
+            time_offset: str,
+            vis_tomme_maaneder: bool = False
         ) -> pd.DataFrame:
         """
         Returnerer en DataFrame med oversikt over hvor mange outliers som ble
         fjernet per måned for en gitt by, elementId og timeOffset.
+
+        Parametre:
+        - vis_tomme_maaneder: Hvis True, inkluder også måneder uten outliers.
 
         Kolonner: year_month, outliers_removed, antall_totalt, andel_outliers_%%
         """
@@ -47,12 +51,12 @@ class DataAnalyzer:
             mask = self.detector.detect_iqr(original, extreme=True)
             antall_outliers = int(mask.sum())
 
-            if antall_outliers > 0:
+            if vis_tomme_maaneder or antall_outliers > 0:
                 resultater.append({
                     "year_month": ym,
                     "outliers_removed": antall_outliers,
                     "antall_totalt": len(original),
-                    "andel_outliers_%": round(100 * antall_outliers / len(original), 1),
+                    "andel_outliers_%": round(100 * antall_outliers / len(original), 1) if len(original) > 0 else 0.0,
                 })
 
         return pd.DataFrame(resultater).sort_values("year_month").reset_index(drop=True)
@@ -161,7 +165,7 @@ class DataAnalyzer:
         element_id2: str,
         element_id3: str,
         statistic: str = "mean",        # "mean", "median" eller "std"
-        frequency: str = "ME",           # "D", "W", "ME", "Y"
+        frequency: str = "ME",           # "D", "W", "ME", "YE"
         remove_outliers: bool = True,
         start: str | None = None,       # "YYYY-MM" eller "YYYY-MM-DD"
         end: str | None = None,         # samme format som start
@@ -243,7 +247,9 @@ class DataAnalyzer:
             element_id: str,
             time_offset: str,
             statistikk: str = "mean",
-            frekvens: str = "D"
+            frekvens: str = "D",
+            start: str | None = None,
+            end: str | None = None   
         ) -> pd.DataFrame:
         """
         Returnerer prosentvis endring i en valgt statistikk (mean, median, std)
@@ -254,7 +260,7 @@ class DataAnalyzer:
         - element_id: f.eks. "mean(air_temperature P1D)"
         - time_offset: f.eks. "PT0H"
         - statistikk: "mean", "median" eller "std"
-        - frekvens: "D" (daglig), "ME" (månedlig), "Y" (årlig)
+        - frekvens: "D" (daglig), "ME" (månedlig), "YE" (årlig)
 
         Returnerer en DataFrame med:
         - periode
@@ -264,8 +270,8 @@ class DataAnalyzer:
         if statistikk not in {"mean", "median", "std"}:
             raise ValueError("statistikk må være 'mean', 'median' eller 'std'")
         
-        if frekvens not in {"D", "ME", "Y"}:
-            raise ValueError("frekvens må være 'D', 'ME' eller 'Y'")
+        if frekvens not in {"D", "ME", "YE"}:
+            raise ValueError("frekvens må være 'D', 'ME' eller 'YE'")
 
         df = self.stats._load_city(by)
         if "referenceTime" not in df.columns:
@@ -280,6 +286,14 @@ class DataAnalyzer:
 
         df.set_index("referenceTime", inplace=True)
         df.sort_index(inplace=True)
+
+        if start or end:
+            mask = pd.Series(True, index=df.index)
+            if start:
+                mask &= df.index >= pd.to_datetime(start).tz_localize("UTC")
+            if end:
+                mask &= df.index <= pd.to_datetime(end).tz_localize("UTC")
+            df = df[mask]
 
         agg_map = {
             "mean": df["value"].resample(frekvens).mean,
@@ -297,3 +311,55 @@ class DataAnalyzer:
         df_endring = df_endring.reset_index()
 
         return df_endring.dropna(subset=["verdi", "prosent_endring"]).reset_index(drop=True)
+    
+    def _laveste_offset(self, city: str, element_id: str) -> str:
+        """Returnerer offset‑strengen (PT⧸H) med minste timetall."""
+        df = self.stats._load_city(city)
+        offs = df.loc[df["elementId"] == element_id, "timeOffset"].dropna().unique()
+        if not len(offs):
+            raise ValueError(f"Ingen timeOffset funnet for {city=}, {element_id=}")
+        hours = [int(re.search(r"PT(\d+)H", o).group(1)) for o in offs]
+        return offs[hours.index(min(hours))]
+
+    def langtidsmiddel_per_måned(
+        self,
+        city: str,
+        element_id: str,
+        remove_outliers: bool = False,
+        statistikk: str = "mean",      # "mean", "median", "std"
+    ) -> pd.DataFrame:
+        """
+        Returnerer 12‑rads DataFrame (month, month_name, verdi).
+
+        *Velger alltid laveste timeOffset automatisk.*
+        *Kan beregne med eller uten ekstreme outliers.*
+        """
+        if statistikk not in {"mean", "median", "std"}:
+            raise ValueError("statistikk må være 'mean', 'median' eller 'std'")
+
+        off = self._laveste_offset(city, element_id)   # auto‑offset
+
+        # -- hent rådata for byen/element/offset
+        df = self.stats._load_city(city)
+        df = df[(df["elementId"] == element_id) & (df["timeOffset"] == off)].copy()
+        df["value"] = pd.to_numeric(df["value"], errors="coerce")
+        df["referenceTime"] = pd.to_datetime(df["referenceTime"], utc=True)
+
+        if remove_outliers:         # fjern ekstreme outliers (3 × IQR)
+            mask = self.detector.detect_iqr(df["value"], extreme=True)
+            df.loc[mask, "value"] = pd.NA
+
+        # -- gruppér på kalendermåned
+        df["month"] = df["referenceTime"].dt.month
+        agg_map = {
+            "mean": df.groupby("month")["value"].mean,
+            "median": df.groupby("month")["value"].median,
+            "std": lambda: df.groupby("month")["value"].std(ddof=0),
+        }
+        klima = agg_map[statistikk]().reset_index().rename(columns={"value": "verdi"})
+
+        klima["month_name"] = klima["month"].apply(
+            lambda m: calendar.month_abbr[m].capitalize()
+        )
+        return klima[["month", "month_name", "verdi"]]
+
