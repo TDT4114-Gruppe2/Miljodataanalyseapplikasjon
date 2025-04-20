@@ -12,7 +12,7 @@ import re
 import pandas as pd
 from outlier_detector import OutlierDetector
 from monthly_statistics import MonthlyStatistics
-
+import calendar
 
 class DataAnalyzer:
     def __init__(self, data_dir):
@@ -311,3 +311,55 @@ class DataAnalyzer:
         df_endring = df_endring.reset_index()
 
         return df_endring.dropna(subset=["verdi", "prosent_endring"]).reset_index(drop=True)
+    
+    def _laveste_offset(self, city: str, element_id: str) -> str:
+        """Returnerer offset‑strengen (PT⧸H) med minste timetall."""
+        df = self.stats._load_city(city)
+        offs = df.loc[df["elementId"] == element_id, "timeOffset"].dropna().unique()
+        if not len(offs):
+            raise ValueError(f"Ingen timeOffset funnet for {city=}, {element_id=}")
+        hours = [int(re.search(r"PT(\d+)H", o).group(1)) for o in offs]
+        return offs[hours.index(min(hours))]
+
+    def langtidsmiddel_per_måned(
+        self,
+        city: str,
+        element_id: str,
+        remove_outliers: bool = False,
+        statistikk: str = "mean",      # "mean", "median", "std"
+    ) -> pd.DataFrame:
+        """
+        Returnerer 12‑rads DataFrame (month, month_name, verdi).
+
+        *Velger alltid laveste timeOffset automatisk.*
+        *Kan beregne med eller uten ekstreme outliers.*
+        """
+        if statistikk not in {"mean", "median", "std"}:
+            raise ValueError("statistikk må være 'mean', 'median' eller 'std'")
+
+        off = self._laveste_offset(city, element_id)   # auto‑offset
+
+        # -- hent rådata for byen/element/offset
+        df = self.stats._load_city(city)
+        df = df[(df["elementId"] == element_id) & (df["timeOffset"] == off)].copy()
+        df["value"] = pd.to_numeric(df["value"], errors="coerce")
+        df["referenceTime"] = pd.to_datetime(df["referenceTime"], utc=True)
+
+        if remove_outliers:         # fjern ekstreme outliers (3 × IQR)
+            mask = self.detector.detect_iqr(df["value"], extreme=True)
+            df.loc[mask, "value"] = pd.NA
+
+        # -- gruppér på kalendermåned
+        df["month"] = df["referenceTime"].dt.month
+        agg_map = {
+            "mean": df.groupby("month")["value"].mean,
+            "median": df.groupby("month")["value"].median,
+            "std": lambda: df.groupby("month")["value"].std(ddof=0),
+        }
+        klima = agg_map[statistikk]().reset_index().rename(columns={"value": "verdi"})
+
+        klima["month_name"] = klima["month"].apply(
+            lambda m: calendar.month_abbr[m].capitalize()
+        )
+        return klima[["month", "month_name", "verdi"]]
+
