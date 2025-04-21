@@ -160,7 +160,7 @@ class DataAnalyzer:
 
     def kombiner_variabler_analyse(
         self,
-        city: str,
+        by: str,
         element_id1: str,
         element_id2: str,
         element_id3: str,
@@ -177,9 +177,9 @@ class DataAnalyzer:
             periode | komb12_<stat> | elem3_<stat> | n_outliers
 
         Parametre:
-        city, element_id1/2/3, statistic, frequency, remove_outliers, start, end
+        by, element_id1/2/3, statistic, frequency, remove_outliers, start, end
         """
-        df = self.stats._load_city(city)
+        df = self.stats._load_city(by)
 
         if start or end:
             mask_period = pd.Series(True, index=df.index)
@@ -312,18 +312,18 @@ class DataAnalyzer:
 
         return df_endring.dropna(subset=["verdi", "prosent_endring"]).reset_index(drop=True)
     
-    def _laveste_offset(self, city: str, element_id: str) -> str:
+    def _laveste_offset(self, by: str, element_id: str) -> str:
         """Returnerer offset‑strengen (PT⧸H) med minste timetall."""
-        df = self.stats._load_city(city)
+        df = self.stats._load_city(by)
         offs = df.loc[df["elementId"] == element_id, "timeOffset"].dropna().unique()
         if not len(offs):
-            raise ValueError(f"Ingen timeOffset funnet for {city=}, {element_id=}")
+            raise ValueError(f"Ingen timeOffset funnet for {by=}, {element_id=}")
         hours = [int(re.search(r"PT(\d+)H", o).group(1)) for o in offs]
         return offs[hours.index(min(hours))]
 
     def langtidsmiddel_per_måned(
         self,
-        city: str,
+        by: str,
         element_id: str,
         remove_outliers: bool = False,
         statistikk: str = "mean",      # "mean", "median", "std"
@@ -337,10 +337,10 @@ class DataAnalyzer:
         if statistikk not in {"mean", "median", "std"}:
             raise ValueError("statistikk må være 'mean', 'median' eller 'std'")
 
-        off = self._laveste_offset(city, element_id)   # auto‑offset
+        off = self._laveste_offset(by, element_id)   # auto‑offset
 
         # -- hent rådata for byen/element/offset
-        df = self.stats._load_city(city)
+        df = self.stats._load_city(by)
         df = df[(df["elementId"] == element_id) & (df["timeOffset"] == off)].copy()
         df["value"] = pd.to_numeric(df["value"], errors="coerce")
         df["referenceTime"] = pd.to_datetime(df["referenceTime"], utc=True)
@@ -362,4 +362,3 @@ class DataAnalyzer:
             lambda m: calendar.month_abbr[m].capitalize()
         )
         return klima[["month", "month_name", "verdi"]]
-
