@@ -362,3 +362,83 @@ class DataAnalyzer:
             lambda m: calendar.month_abbr[m].capitalize()
         )
         return klima[["month", "month_name", "verdi"]]
+    
+
+        # ------------------------------------------------------------------
+    #  NY METODE  –  lim inn i DataAnalyzer-klassen
+    # ------------------------------------------------------------------
+    def compute_yearly (
+            self,
+            by: str,
+            element_id: str,
+            year: int | None = None,
+            *,
+            time_offset: str | None = None,
+            aggregate: str | None = "mean",     # "mean", "sum", "median", "std" eller None
+        ) -> pd.DataFrame:
+        """
+        Henter data og gjør én av to ting:
+
+        1) Hvis *aggregate* settes til "mean" (standard), "sum" eller "median":
+           - Returnerer én rad per år med valgt statistikk.
+           - Hvis *year* oppgis, får du én rad for det året.
+
+        2) Hvis *aggregate* = None:
+           - Returnerer **alle daglige verdier** for oppgitt *year*.
+             (Krever da at *year* er satt.)
+
+        Parametre
+        ---------
+        by           : By/filnavn, f.eks. "oslo"
+        element_id   : Element‑streng, f.eks. "sum(precipitation_amount P1D)"
+        year         : int eller None
+        time_offset  : f.eks. "PT0H". Hvis None velges laveste via _laveste_offset()
+        aggregate    : "mean", "sum", "median" eller None (rå verdier)
+
+        Returnerer
+        ----------
+        pd.DataFrame
+            - Scenario 1: kolonner ["year", "verdi"]
+            - Scenario 2: kolonner ["referenceTime", "value", "elementId", "timeOffset"]
+        """
+        # ---------- finn offset --------------------------------------
+        if time_offset is None:
+            time_offset = self._laveste_offset(by, element_id)
+
+        # ---------- hent og filtrer rådata ---------------------------
+        df = (
+            self.stats._load_city(by)
+              .query("elementId == @element_id and timeOffset == @time_offset")
+              .assign(value=lambda d: pd.to_numeric(d["value"], errors="coerce"))
+              .dropna(subset=["value"])
+        )
+
+        # ---------- særbehandling hvis råverdier ønskes -------------
+        if aggregate is None:
+            if year is None:
+                raise ValueError("year må angis når aggregate=None (rå verdier)")
+            df = df[df["referenceTime"].dt.year == year]
+            if df.empty:
+                raise ValueError(f"Ingen verdier for {by=} {element_id=} {year=}")
+            return df.reset_index(drop=True)
+
+        # ---------- legg til årskolonne ------------------------------
+        df["year"] = df["referenceTime"].dt.year
+        if year is not None:
+            df = df[df["year"] == year]
+
+        if df.empty:
+            raise ValueError("Ingen data etter filtrering – sjekk input")
+
+        # ---------- aggreger per år ----------------------------------
+        agg_map = {
+            "mean": df.groupby("year")["value"].mean,
+            "sum": df.groupby("year")["value"].sum,
+            "median": df.groupby("year")["value"].median,
+            "std": df.groupby("year")["value"].std,
+        }
+        if aggregate not in agg_map:
+            raise ValueError("aggregate må være 'mean', 'sum', 'median' eller None")
+
+        out = agg_map[aggregate]().reset_index(name="verdi")
+        return out
