@@ -1,76 +1,73 @@
-import numpy as np
+"""Henter månedlige data."""
+import os
 import pandas as pd
+import re
+from functools import lru_cache
 from base_data import DataLoader
 
+
 class MonthlyStats(DataLoader):
-    # intern hjelpefunksjon
-    @staticmethod
-    def _select_values(
-        df: pd.DataFrame,
-        year_month: str | None,
-        element_id: str,
-        time_offset: str,
-    ) -> pd.Series:
-        mask = (
-            df["elementId"].eq(element_id)
-            & df["timeOffset"].eq(time_offset)
-        )
-        if year_month is not None:
-            mask &= df["referenceTime"].dt.strftime("%Y-%m").eq(year_month)
+    """Fast navne­mønster for filer, kan overstyres i sub‑klasser."""
 
-        vals = pd.to_numeric(df.loc[mask, "value"], errors="coerce").dropna()
-        if vals.empty:
-            raise ValueError(
-                "Ingen datapunkter for "
-                f"{element_id=} {time_offset=} {year_month=}"
+    filename_template: str = "vaerdata_{city}.csv"
+
+    def __init__(self, data_dir: str):
+        """Initialiserer DataLoader med data­katalog."""
+        self.data_dir = data_dir
+
+    @lru_cache(maxsize=None)
+    def _load_city(self, city: str) -> pd.DataFrame:
+        path = os.path.join(
+            self.data_dir,
+            self.filename_template.format(city=city),
+        )
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Fant ikke datafil: {path}")
+
+        df = pd.read_csv(path, low_memory=False)
+
+        if "referenceTime" not in df.columns:
+            raise KeyError(
+                "Kolonnen 'referenceTime' mangler i "
+                f"'{os.path.basename(path)}' – sjekk datagrunnlaget."
             )
-        return vals
 
-    def compute_single_month(
-            self,
-            year_month: str,
-            element_id: str,
-            city: str,
-            time_offset: str | None = None,
-        ) -> dict[str, float]:
-
-        if time_offset is None:
-            time_offset = self._get_min_offset(city, element_id)
-
-        df = self._load_city(city)
-        vals = self._select_values(df, year_month, element_id, time_offset)
-        return {
-            "mean": float(vals.mean()),
-            "median": float(vals.median()),
-            "std": float(vals.std(ddof=0)),
-        }
-
-    def compute_all_months(
-            self,
-            element_id: str,
-            city: str,
-            time_offset: str | None = None,
-        ) -> pd.DataFrame:
-
-        if time_offset is None:
-            time_offset = self._get_min_offset(city, element_id)
-
-        df = self._load_city(city)
-        vals = self._select_values(df, None, element_id, time_offset)
-        df_filtered = df.loc[vals.index].copy()
-        df_filtered["year_month"] = (
-            df_filtered["referenceTime"]
-            .dt.tz_localize(None)
-            .dt.to_period("M")
+        df["referenceTime"] = pd.to_datetime(
+            df["referenceTime"], utc=True, errors="coerce"
         )
-        df_filtered["value"] = vals.to_numpy(dtype=np.float64)
+        return df
 
-        out = (
-            df_filtered.groupby("year_month")["value"]
-            .agg(["mean", "median", "std"])
-            .reset_index()
+    def _get_min_offset(self, city: str, element_id: str) -> str:
+        df = self._load_city(city)
+        offsets = (
+            df.loc[df["elementId"] == element_id, "timeOffset"]
+              .dropna()
+              .unique()
         )
-        out["year_month"] = out["year_month"].astype(str)
-        return out
-    
+        if len(offsets) == 0:
+            raise ValueError(
+                f"Ingen timeOffset funnet for "
+                f"city='{city}', element_id='{element_id}'"
+            )
+
+        pattern = re.compile(r"PT(\d+)H")
+        hours: list[int] = []
+        valid_offsets: list[str] = []
+
+        for off in offsets:
+            m = pattern.fullmatch(off)
+            if m:
+                hours.append(int(m.group(1)))
+                valid_offsets.append(off)
+
+        if not hours:
+            raise ValueError(
+                f"Fant ingen gyldige PT⟨n⟩H‑offsets i data for "
+                f"{city=} {element_id=}. Råverdier: {offsets!r}"
+            )
+
+        lowest_idx = hours.index(min(hours))
+        return valid_offsets[lowest_idx]
+
+
 __all__ = ["MonthlyStats"]

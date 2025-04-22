@@ -1,6 +1,7 @@
-import numpy as np
+"""Finner outliers i dataene ved hjelp av IQR-metoden."""
 import pandas as pd
 from base_data import DataLoader
+
 
 class OutlierDetector:
     """
@@ -8,13 +9,14 @@ class OutlierDetector:
 
     whisker = 1.5 (vanlige) eller 3.0 (ekstreme). None = velg dynamisk.
     """
+
     def __init__(self, whisker: float | None = None):
         if whisker not in (None, 1.5, 3.0):
             raise ValueError("whisker må være 1.5, 3.0 eller None")
         self.whisker = whisker
 
-    # ----- grunnleggende statistikk ---------------------------------
     def summarize(self, series: pd.Series) -> dict[str, float]:
+        """Returnerer grunnleggende IQR-statistikk for en serie."""
         numeric = pd.to_numeric(series, errors="coerce").dropna()
         q1 = numeric.quantile(0.25)
         q3 = numeric.quantile(0.75)
@@ -29,7 +31,6 @@ class OutlierDetector:
             "upper_outer": q3 + 3.0 * iqr,
         }
 
-    # ----- deteksjon -------------------------------------------------
     def detect_iqr(
         self,
         series: pd.Series,
@@ -37,6 +38,7 @@ class OutlierDetector:
         extreme: bool = False,
         whisker: float | None = None,
     ) -> pd.Series:
+        """Finner outliers i serien."""
         whisker = whisker if whisker is not None else (
             self.whisker or (3.0 if extreme else 1.5)
         )
@@ -51,7 +53,7 @@ class OutlierDetector:
         upper = q3 + whisker * iqr
         return (numeric < lower) | (numeric > upper)
 
-    # ----- tell / fjern ---------------------------------------------
+    # Teller og fjerner outliers
     def count_outliers_iqr(self, series, **kwargs) -> int:
         return int(self.detect_iqr(series, **kwargs).sum())
 
@@ -59,12 +61,12 @@ class OutlierDetector:
         mask = self.detect_iqr(series, **kwargs)
         return series.where(~mask)
 
-    # ----- snarvei ---------------------------------------------------
     @staticmethod
     def detect(series, extreme: bool = False):
         return OutlierDetector().detect_iqr(series, extreme=extreme)
 
 class OutlierAnalysis(DataLoader):
+    """Analyserer outliers."""
     def __init__(self, data_dir: str, *, whisker: float | None = None):
         super().__init__(data_dir)
         self.detector = OutlierDetector(whisker)

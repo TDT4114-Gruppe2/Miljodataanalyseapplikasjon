@@ -1,18 +1,23 @@
+"""Laster inn data fra CSV-filer."""
 import os
+import pandas as pd
 import re
 from functools import lru_cache
-import pandas as pd
+
 
 class DataLoader:
-    #: Fast navne­mønster for filer – kan overstyres i sub‑klasser om nødvendig
+    """Fast navne­mønster for filer, kan overstyres i sub‑klasser."""
+
     filename_template: str = "vaerdata_{city}.csv"
 
     def __init__(self, data_dir: str):
+        """Initialiserer DataLoader med data­katalog."""
         self.data_dir = data_dir
 
     @lru_cache(maxsize=None)
     def _load_city(self, city: str) -> pd.DataFrame:
-        path = os.path.join(self.data_dir, self.filename_template.format(city=city))
+        path = os.path.join(self.data_dir,
+                            self.filename_template.format(city=city))
         if not os.path.exists(path):
             raise FileNotFoundError(f"Fant ikke datafil: {path}")
 
@@ -38,8 +43,10 @@ class DataLoader:
         )
         if len(offsets) == 0:
             raise ValueError(
-                f"Ingen timeOffset funnet for city='{city}', element_id='{element_id}'"
+                f"Ingen timeOffset funnet for "
+                f"city='{city}', element_id='{element_id}'"
             )
+
         pattern = re.compile(r"PT(\d+)H")
         hours: list[int] = []
         valid_offsets: list[str] = []
