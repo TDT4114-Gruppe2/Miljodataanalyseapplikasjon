@@ -1,4 +1,4 @@
-"""Henter årlige data."""
+"""Genererer årlige data."""
 import calendar
 import pandas as pd
 from base_data import DataLoader
@@ -6,7 +6,7 @@ from outliers import OutlierDetector
 
 
 class YearlyStats(DataLoader):
-    """Henter årlige data."""
+    """Genererer årlige data."""
 
     def __init__(
         self,

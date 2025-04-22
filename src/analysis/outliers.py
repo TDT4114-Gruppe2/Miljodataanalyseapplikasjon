@@ -11,6 +11,7 @@ class OutlierDetector:
     """
 
     def __init__(self, whisker: float | None = None):
+        """Definerer hva verdien for en outlier er."""
         if whisker not in (None, 1.5, 3.0):
             raise ValueError("whisker må være 1.5, 3.0 eller None")
         self.whisker = whisker
@@ -55,19 +56,25 @@ class OutlierDetector:
 
     # Teller og fjerner outliers
     def count_outliers_iqr(self, series, **kwargs) -> int:
+        """Returnerer antall outliers i serien."""
         return int(self.detect_iqr(series, **kwargs).sum())
 
     def remove_outliers_iqr(self, series, **kwargs) -> pd.Series:
+        """Fjerner outliers fra serien."""
         mask = self.detect_iqr(series, **kwargs)
         return series.where(~mask)
 
     @staticmethod
     def detect(series, extreme: bool = False):
+        """Finner outliers i serien."""
         return OutlierDetector().detect_iqr(series, extreme=extreme)
+
 
 class OutlierAnalysis(DataLoader):
     """Analyserer outliers."""
+
     def __init__(self, data_dir: str, *, whisker: float | None = None):
+        """Initialiserer OutlierAnalysis med data_dir og whisker."""
         super().__init__(data_dir)
         self.detector = OutlierDetector(whisker)
 
@@ -79,7 +86,7 @@ class OutlierAnalysis(DataLoader):
         time_offset: str | None = None,
         include_empty_months: bool = False,
     ) -> pd.DataFrame:
-        
+        """Finner outliers per måned."""
         if time_offset is None:
             time_offset = self._get_min_offset(city, element_id)
 
@@ -114,7 +121,11 @@ class OutlierAnalysis(DataLoader):
                     }
                 )
 
-        return pd.DataFrame(rows).sort_values("year_month").reset_index(drop=True)
+        return (
+            pd.DataFrame(rows)
+            .sort_values("year_month")
+            .reset_index(drop=True)
+        )
 
     def stats_with_without_outliers(
         self,
@@ -124,7 +135,7 @@ class OutlierAnalysis(DataLoader):
         time_offset: str | None = None,
         statistic: str,
     ) -> pd.DataFrame:
-        
+        """Finner statistikk med og uten utliggere."""
         if statistic not in {"mean", "median", "std"}:
             raise ValueError("statistic må være 'mean', 'median' eller 'std'")
 
