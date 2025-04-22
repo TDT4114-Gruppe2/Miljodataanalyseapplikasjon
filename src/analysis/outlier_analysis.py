@@ -1,6 +1,6 @@
 """Finner outliers i dataene ved hjelp av IQR-metoden."""
 import pandas as pd
-from base_data import DataLoader
+from basedata import DataLoader
 from outlier_detector import OutlierDetector
 
 

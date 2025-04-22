@@ -1,7 +1,7 @@
 """Genererer årlige data."""
 import calendar
 import pandas as pd
-from base_data import DataLoader
+from basedata import DataLoader
 from outlier_detector import OutlierDetector
 
 
