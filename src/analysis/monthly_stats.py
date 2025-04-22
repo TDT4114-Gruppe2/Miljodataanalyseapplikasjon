@@ -1,9 +1,12 @@
+"""Genererer månedlige data."""
 import numpy as np
 import pandas as pd
 from base_data import DataLoader
 
+
 class MonthlyStats(DataLoader):
-    # intern hjelpefunksjon
+    """Henter månedlige data."""
+
     @staticmethod
     def _select_values(
         df: pd.DataFrame,
@@ -27,13 +30,13 @@ class MonthlyStats(DataLoader):
         return vals
 
     def compute_single_month(
-            self,
-            year_month: str,
-            element_id: str,
-            city: str,
-            time_offset: str | None = None,
-        ) -> dict[str, float]:
-
+        self,
+        year_month: str,
+        element_id: str,
+        city: str,
+        time_offset: str | None = None,
+    ) -> dict[str, float]:
+        """Beregn månedlig statistikk."""
         if time_offset is None:
             time_offset = self._get_min_offset(city, element_id)
 
@@ -46,12 +49,12 @@ class MonthlyStats(DataLoader):
         }
 
     def compute_all_months(
-            self,
-            element_id: str,
-            city: str,
-            time_offset: str | None = None,
-        ) -> pd.DataFrame:
-
+        self,
+        element_id: str,
+        city: str,
+        time_offset: str | None = None,
+    ) -> pd.DataFrame:
+        """Beregn månedlig statistikk for alle måneder."""
         if time_offset is None:
             time_offset = self._get_min_offset(city, element_id)
 
@@ -72,5 +75,5 @@ class MonthlyStats(DataLoader):
         )
         out["year_month"] = out["year_month"].astype(str)
         return out
-    
+
 __all__ = ["MonthlyStats"]
