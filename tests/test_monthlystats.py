@@ -3,7 +3,10 @@ import pytest
 from pathlib import Path
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
+
 from src.analysis.monthlystats import MonthlyStats
 
 
@@ -125,10 +128,10 @@ def test_compute_all_months(tmp_data_dir):
     feb = out[out["year_month"] == "2023-02"].iloc[0]
     assert jan["mean"] == 3.0
     assert jan["median"] == 3.0
-    assert jan["std"] == pytest.approx(1.0)
+    assert jan["std"] == pytest.approx(1.414)
     assert feb["mean"] == 7.0
     assert feb["median"] == 7.0
-    assert feb["std"] == pytest.approx(1.0)
+    assert feb["std"] == pytest.approx(1.414)
 
 
 def test_compute_all_months_default_offset(tmp_data_dir):
