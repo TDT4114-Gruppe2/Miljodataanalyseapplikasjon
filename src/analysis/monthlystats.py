@@ -1,7 +1,7 @@
 """Genererer månedlige data."""
 import numpy as np
 import pandas as pd
-from base_data import DataLoader
+from basedata import DataLoader
 
 
 class MonthlyStats(DataLoader):

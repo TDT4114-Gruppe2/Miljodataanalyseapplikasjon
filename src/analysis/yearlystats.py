@@ -1,8 +1,8 @@
 """Genererer årlige data."""
 import calendar
 import pandas as pd
-from base_data import DataLoader
-from outlier_detector import OutlierDetector
+from basedata import DataLoader
+from outlierdetector import OutlierDetector
 
 
 class YearlyStats(DataLoader):
