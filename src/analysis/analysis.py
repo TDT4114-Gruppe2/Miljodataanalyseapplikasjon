@@ -154,93 +154,6 @@ class DataAnalyzer:
 
         return df_mangler[["date", "timeOffset", "elementId", "mangler"]].reset_index(drop=True)
 
-    """
-    Mangelfull funksjon laget for store analyser, men mangler upraktisk kombinering av data
-    """
-
-    def kombiner_variabler_analyse(
-        self,
-        by: str,
-        element_id1: str,
-        element_id2: str,
-        element_id3: str,
-        statistic: str = "mean",        # "mean", "median" eller "std"
-        frequency: str = "ME",           # "D", "W", "ME", "YE"
-        remove_outliers: bool = True,
-        start: str | None = None,       # "YYYY-MM" eller "YYYY-MM-DD"
-        end: str | None = None,         # samme format som start
-    ) -> pd.DataFrame:
-        """
-        Kombinerer (element_id1 + element_id2) og sammenligner med element_id3.
-
-        Resultatet er én DataFrame med:
-            periode | komb12_<stat> | elem3_<stat> | n_outliers
-
-        Parametre:
-        by, element_id1/2/3, statistic, frequency, remove_outliers, start, end
-        """
-        df = self.stats._load_city(by)
-
-        if start or end:
-            mask_period = pd.Series(True, index=df.index)
-            if start:
-                start_ts = pd.to_datetime(start).tz_localize("UTC")
-                mask_period &= df["referenceTime"] >= start_ts
-            if end:
-                end_ts = pd.to_datetime(end).tz_localize("UTC")
-                mask_period &= df["referenceTime"] <= end_ts
-            df = df[mask_period]
-
-        def _laveste_offset(elem):
-            offs = df.loc[df["elementId"] == elem, "timeOffset"].dropna().unique()
-            hours = [int(re.search(r"PT(\\d+)H", o).group(1)) for o in offs]
-            return offs[hours.index(min(hours))]
-
-        off1 = _laveste_offset(element_id1)
-        off2 = _laveste_offset(element_id2)
-        off3 = _laveste_offset(element_id3)
-
-        sub1 = df[(df["elementId"] == element_id1) & (df["timeOffset"] == off1)].copy()
-        sub2 = df[(df["elementId"] == element_id2) & (df["timeOffset"] == off2)].copy()
-        sub3 = df[(df["elementId"] == element_id3) & (df["timeOffset"] == off3)].copy()
-
-        for sub in (sub1, sub2, sub3):
-            sub["value"] = pd.to_numeric(sub["value"], errors="coerce")
-            sub["referenceTime"] = pd.to_datetime(sub["referenceTime"], utc=True)
-            sub.set_index("referenceTime", inplace=True)
-
-        def _agg(sub):
-            ser = sub["value"]
-            if remove_outliers:
-                ser = ser[~self.detector.detect_iqr(ser, extreme=True)]
-            if statistic == "mean":
-                return ser.resample(frequency).mean()
-            elif statistic == "median":
-                return ser.resample(frequency).median()
-            else:
-                return ser.resample(frequency).std(ddof=0)
-
-        s1 = _agg(sub1)
-        s2 = _agg(sub2)
-        s3 = _agg(sub3)
-
-        df_out = pd.DataFrame({
-            "komb12_" + statistic: (s1 + s2),
-            f"{element_id3}_{statistic}": s3,
-        }).dropna(how="all")
-
-        if remove_outliers:
-            outlier_count = (
-                self.detector.detect_iqr(sub1["value"], extreme=True).resample(frequency).sum() +
-                self.detector.detect_iqr(sub2["value"], extreme=True).resample(frequency).sum() +
-                self.detector.detect_iqr(sub3["value"], extreme=True).resample(frequency).sum()
-            )
-            df_out["n_outliers"] = outlier_count.astype("Int64")
-
-        df_out.index.name = "periode"
-        df_out.reset_index(inplace=True)
-        return df_out
-
     def prosentvis_endring(
             self,
             by: str,
@@ -363,10 +276,6 @@ class DataAnalyzer:
         )
         return klima[["month", "month_name", "verdi"]]
     
-
-        # ------------------------------------------------------------------
-    #  NY METODE  –  lim inn i DataAnalyzer-klassen
-    # ------------------------------------------------------------------
     def compute_yearly (
             self,
             by: str,
