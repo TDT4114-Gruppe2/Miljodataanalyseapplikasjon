@@ -7,7 +7,7 @@ import pandas as pd
 # Legg til prosjektets rotmappe i sys.path slik at vi kan importere WeatherConverter.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.weatherconverter import WeatherConverter  # Endre modulnavn ved behov
+from src.handleData.weatherconverter import WeatherConverter  # Endre modulnavn ved behov
 
 
 # -------------------------------
