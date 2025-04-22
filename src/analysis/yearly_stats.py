@@ -2,7 +2,7 @@
 import calendar
 import pandas as pd
 from base_data import DataLoader
-from outliers import OutlierDetector
+from outlier_detector import OutlierDetector
 
 
 class YearlyStats(DataLoader):

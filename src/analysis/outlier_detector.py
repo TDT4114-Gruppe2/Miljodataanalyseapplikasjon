@@ -67,5 +67,5 @@ class OutlierDetector:
     def detect(series, extreme: bool = False):
         """Finner outliers i serien."""
         return OutlierDetector().detect_iqr(series, extreme=extreme)
-    
+
 __all__ = ["OutlierDetector"]
