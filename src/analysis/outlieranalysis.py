@@ -1,7 +1,7 @@
 """Finner outliers i dataene ved hjelp av IQR-metoden."""
 import pandas as pd
 from basedata import DataLoader
-from outlier_detector import OutlierDetector
+from outlierdetector import OutlierDetector
 
 
 class OutlierAnalysis(DataLoader):
@@ -69,7 +69,7 @@ class OutlierAnalysis(DataLoader):
         time_offset: str | None = None,
         statistic: str,
     ) -> pd.DataFrame:
-        """Finner statistikk med og uten utliggere."""
+        """Finner statistikk med og uten outliers."""
         if statistic not in {"mean", "median", "std"}:
             raise ValueError("statistic må være 'mean', 'median' eller 'std'")
 

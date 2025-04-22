@@ -3,12 +3,12 @@ import pandas as pd
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.analysis.outlier_analysis import OutlierAnalysis
+from src.analysis.outlieranalysis import OutlierAnalysis
 
 
 class MockOutlierAnalysis(OutlierAnalysis):
     def _load_city(self, city):
-        # Lager en mock-dataserie med én utligger i januar
+        # Lager en mock-dataserie med en outlier i januar
         data = {
             "elementId": ["temperature"] * 7,
             "timeOffset": ["PT0H"] * 7,

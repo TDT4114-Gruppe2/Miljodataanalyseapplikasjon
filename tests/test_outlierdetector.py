@@ -5,12 +5,12 @@ from pandas.testing import assert_series_equal
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.analysis.outlier_detector import OutlierDetector
+from src.analysis.outlierdetector import OutlierDetector
 
 
 class TestOutlierDetector(unittest.TestCase):
     def setUp(self):
-        self.data = pd.Series([10, 12, 12, 13, 12, 11, 100])  # 100 er utligger
+        self.data = pd.Series([10, 12, 12, 13, 12, 11, 100]) #100 er outlier her
         self.clean_data = pd.Series([10, 12, 12, 13, 12, 11])
 
     def test_init_valid(self):
@@ -34,8 +34,8 @@ class TestOutlierDetector(unittest.TestCase):
     def test_detect_iqr_regular(self):
         detector = OutlierDetector(1.5)
         outliers = detector.detect_iqr(self.data)
-        self.assertTrue(outliers.iloc[-1])  # 100 er utligger
-        self.assertFalse(outliers.iloc[0])  # 10 ikke utligger
+        self.assertTrue(outliers.iloc[-1])  # 100 er outlier
+        self.assertFalse(outliers.iloc[0])  # 10 er ikke outlier
         self.assertEqual(outliers.sum(), 1)
 
     def test_detect_iqr_extreme(self):

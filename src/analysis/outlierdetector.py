@@ -4,7 +4,7 @@ import pandas as pd
 
 class OutlierDetector:
     """
-    IQR‑basert deteksjon/fjerning av utliggere.
+    IQR‑basert deteksjon/fjerning av outliers.
 
     whisker = 1.5 (vanlige) eller 3.0 (ekstreme). None = velg dynamisk.
     """
