@@ -6,7 +6,7 @@ import pytest
 # Gjør src tilgjengelig
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.missingdatafinder import MissingWeatherDataAnalyzer
+from src.missingData.missingdatafinder import MissingWeatherDataAnalyzer
 
 
 def test_load_data(tmp_path):
