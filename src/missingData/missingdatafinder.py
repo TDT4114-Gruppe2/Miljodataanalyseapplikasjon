@@ -72,3 +72,24 @@ class MissingWeatherDataAnalyzer:
         print("Ferdig! Følgende CSV-filer er opprettet:")
         print(" -", missing_path)
         print(" -", summary_path)
+
+class MissingDataConverter:
+    def __init__(self):
+        pass
+
+    def read_missing_values(
+            self,
+            path: str
+        ) -> pd.DataFrame:
+        df = pd.read_csv(path)
+
+        missing_oslo = df["oslo_value"].isna()
+        missing_tromso = df["tromso_value"].isna()
+
+        df["missing"] = None
+        df.loc[missing_oslo, "missing"] = "Oslo"
+        df.loc[missing_tromso, "missing"] = "Tromsø"
+
+        df_missing = df[df["missing"].notna()].copy()
+
+        return df_missing[["date", "timeOffset", "elementId", "missing"]].reset_index(drop=True)
