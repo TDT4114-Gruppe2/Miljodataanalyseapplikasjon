@@ -5,7 +5,7 @@ from pandas.testing import assert_series_equal
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.analysisoutlier_detector import OutlierDetector
+from src.analysis.outlier_detector import OutlierDetector
 
 
 class TestOutlierDetector(unittest.TestCase):
