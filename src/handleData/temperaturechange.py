@@ -1,32 +1,18 @@
+"""Lager range-verdier for temperatur i CSV-filer."""
 import os
 import pandas as pd
 
 
 class TemperatureRangeConverter:
-    """
-    Beregner og erstatter daglig temperatursvingning (maks − min) i
-    `vaerdata_oslo.csv` og `vaerdata_tromso.csv`.
-    """
+    """Beregner og erstatter daglig temperatursvingning (maks − min) i CSV."""
 
     def __init__(self, output_dir: str):
-        """
-        Parameters
-        ----------
-        output_dir : str
-            Katalog der CSV‑filene ligger og hvor nye versjoner skrives.
-        """
+        """Angir navigasjon for filplasseringer."""
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
     def _compute_daily_range(self, df_city: pd.DataFrame) -> pd.DataFrame:
-        """
-        Returnerer DataFrame med elementId == 'range(air_temperature P1D)'
-        (maks − min), avrundet til én desimal og med opprinnelig timeOffset.
-
-        Returns
-        -------
-        pd.DataFrame
-        """
+        """Returnerer tilpasset DataFrame med elementet range."""
         df_mm = df_city[df_city["elementId"].isin([
             "max(air_temperature P1D)",
             "min(air_temperature P1D)",
@@ -42,7 +28,8 @@ class TemperatureRangeConverter:
         # Konverter til numerisk, beregn differansen og rund til én desimal
         df_piv["value"] = (
             pd.to_numeric(df_piv["max(air_temperature P1D)"], errors="coerce")
-            - pd.to_numeric(df_piv["min(air_temperature P1D)"], errors="coerce")
+            - pd.to_numeric(df_piv["min(air_temperature P1D)"],
+                            errors="coerce")
         ).round(1)
 
         # Sett final felter i forventet rekkefølge

@@ -1,3 +1,4 @@
+"""Finner månedlig data."""
 import os
 from functools import lru_cache
 import numpy as np
@@ -5,19 +6,15 @@ import pandas as pd
 
 
 class MonthlyStatistics:
-    """
-    Leser by‑vise CSV‑filer (f.eks. ``vaerdata_oslo.csv``) og beregner
-    månedlig gjennomsnitt, median og standardavvik.
-    """
+    """Leser CSV‑filer og beregner viktige statistiske tall."""
 
     def __init__(self, data_dir: str):
+        """Setter opp data‑katalogen for CSV‑filer."""
         self.data_dir = data_dir
 
     @lru_cache(maxsize=None)
     def _load_city(self, city: str) -> pd.DataFrame:
-        """
-        Leser filen ``vaerdata_{city}.csv`` én gang og cacher resultatet.
-        """
+        """Leser filen `vaerdata_{city}.csv` én gang og cacher resultatet."""
         path = os.path.join(self.data_dir, f"vaerdata_{city}.csv")
         if not os.path.exists(path):
             raise FileNotFoundError(f"Fant ikke '{path}'")
@@ -38,14 +35,11 @@ class MonthlyStatistics:
             element_id: str,
             time_offset: str
         ) -> pd.Series:
-        """
-        Filtrerer på elementId, timeOffset og (valgfritt) år‑måned,
-        og returnerer verdiene som numerisk Pandas‑Series uten manglende data.
-        """
         mask = (
             df["elementId"].eq(element_id) &
             df["timeOffset"].eq(time_offset)
         )
+        """Filtrerer og returnerer verdier uten manglende data."""
         if year_month is not None:
             mask &= df["referenceTime"].dt.strftime("%Y-%m").eq(year_month)
 
@@ -59,7 +53,6 @@ class MonthlyStatistics:
             )
         return values
 
-
     def compute_single_month(
             self,
             year_month: str,
@@ -67,12 +60,7 @@ class MonthlyStatistics:
             city: str,
             time_offset: str
         ) -> dict[str, float]:
-        """
-        Returnerer statistikk for én gitt måned (``YYYY-MM``).
-
-        Resultat‑dict:
-        ``{"mean": float, "median": float, "std": float}``
-        """
+        """Returnerer statistikk for en enkelt måned som dictionary."""
         df = self._load_city(city)
         vals = self._select_values(df, year_month, element_id, time_offset)
 
@@ -88,15 +76,17 @@ class MonthlyStatistics:
             city: str,
             time_offset: str
         ) -> pd.DataFrame:
-        """
-        Returnerer en DataFrame med statistikk for alle måneder som finnes
-        i filen – nyttig om du vil loope videre eller skrive CSV.
-        """
+        """Returnerer statistikk for alle måneder som finnes i filen."""
         df = self._load_city(city)
         vals = self._select_values(df, None, element_id, time_offset)
         df_filtered = df.loc[vals.index].copy()
 
-        df_filtered["year_month"] = df_filtered["referenceTime"].dt.tz_localize(None).dt.to_period("M")
+        df_filtered["year_month"] = (
+            df_filtered["referenceTime"]
+            .dt.tz_localize(None)
+            .dt.to_period("M")
+        )
+
         df_filtered["value"] = vals.to_numpy(dtype=np.float64)
 
         out = (
