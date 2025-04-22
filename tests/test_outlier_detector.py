@@ -2,8 +2,10 @@ import unittest
 import pandas as pd
 import numpy as np
 from pandas.testing import assert_series_equal
-
-from outlier_detector import OutlierDetector
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from src.analysisoutlier_detector import OutlierDetector
 
 
 class TestOutlierDetector(unittest.TestCase):

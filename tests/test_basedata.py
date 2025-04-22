@@ -3,7 +3,6 @@ import pandas as pd
 import pytest
 from datetime import datetime
 import sys
-# Legg til prosjektets rotmappe i sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from src.analysis.basedata import DataLoader
 
