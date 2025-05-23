@@ -1,12 +1,14 @@
-"""Genererer årlige data."""
+"""Genererer årlige og periodiske statistikker fra værdata."""
+
 import calendar
 import pandas as pd
+
 from basedata import DataLoader
 from outlierdetector import OutlierDetector
 
 
 class YearlyStats(DataLoader):
-    """Genererer årlige data."""
+    """Utvider DataLoader med metoder for årlige og periodiske analyser."""
 
     def __init__(
         self,
@@ -14,7 +16,13 @@ class YearlyStats(DataLoader):
         *,
         whisker: float | None = None,
     ) -> None:
-        """Initialiserer YearlyStats med data-katalog."""
+        """
+        Initialiserer YearlyStats med data-katalog og whisker.
+
+        Parametre:
+            data_dir (str): Katalog med CSV-filer.
+            whisker (float | None): Faktor for IQR-whisker (1.5, 3.0 eller None).
+        """
         super().__init__(data_dir)
         self.detector = OutlierDetector(whisker)
 
@@ -25,22 +33,34 @@ class YearlyStats(DataLoader):
         year: int | None = None,
         *,
         time_offset: str | None = None,
-        aggregate: str = "mean",
+        aggregate: str | None = "mean",
     ) -> pd.DataFrame:
-        """Beregn årlig aggregert statistikk eller returner rådata."""
+        """
+        Beregn eller hent årlig statistikk.
+
+        Parametre:
+            city (str): Bykode, f.eks. 'oslo'.
+            element_id (str): ElementId å analysere.
+            year (int | None): År for rådata (krever aggregate=None).
+            time_offset (str | None): PT<n>H-offset. Finner minste hvis None.
+            aggregate (str | None): 'mean', 'sum', 'median', 'std' eller None.
+
+        Returnerer:
+            pd.DataFrame: Kolonner ['year', 'value'] eller rådata hvis aggregate=None.
+
+        Hever:
+            ValueError: Ved manglende data eller ugyldige parametre.
+        """
         if time_offset is None:
             time_offset = self._get_min_offset(city, element_id)
 
         df = (
             self._load_city(city)
             .query(
-                "elementId == @element_id and "
-                "timeOffset == @time_offset"
+                "elementId == @element_id and timeOffset == @time_offset"
             )
             .assign(
-                value=lambda d: pd.to_numeric(
-                    d["value"], errors="coerce"
-                )
+                value=lambda d: pd.to_numeric(d["value"], errors="coerce")
             )
             .dropna(subset=["value"])
         )
@@ -48,38 +68,37 @@ class YearlyStats(DataLoader):
         if aggregate is None:
             if year is None:
                 raise ValueError(
-                    "year må angis når aggregate=None (rå verdier)"
+                    "year må angis når aggregate=None (rådata)"
                 )
+
             daily = df[df["referenceTime"].dt.year == year]
             if daily.empty:
                 raise ValueError(
-                    f"Ingen data for city='{city}', "
-                    f"element_id='{element_id}', year={year}"
+                    f"Ingen data for city={city!r}, element_id={element_id!r}, year={year}"
                 )
             return daily.reset_index(drop=True)
 
+        # Filtrer på år hvis spesifisert
         df["year"] = df["referenceTime"].dt.year
         if year is not None:
             df = df[df["year"] == year]
 
         if df.empty:
-            raise ValueError(
-                "Ingen data etter filtrering – sjekk parametrene"
-            )
+            raise ValueError("Ingen data etter filtrering – sjekk parametrene")
 
-        agg_map = {
+        agg_funcs = {
             "mean": df.groupby("year")["value"].mean,
             "sum": df.groupby("year")["value"].sum,
             "median": df.groupby("year")["value"].median,
             "std": df.groupby("year")["value"].std,
         }
-        if aggregate not in agg_map:
+        if aggregate not in agg_funcs:
             raise ValueError(
                 "aggregate må være 'mean', 'sum', 'median', 'std' eller None"
             )
 
-        out = agg_map[aggregate]().reset_index(name="value")
-        return out
+        result = agg_funcs[aggregate]().reset_index(name="value")
+        return result
 
     def percent_change(
         self,
@@ -92,7 +111,21 @@ class YearlyStats(DataLoader):
         start: str | None = None,
         end: str | None = None,
     ) -> pd.DataFrame:
-        """Beregn prosentvis endring for en gitt statistikk over tid."""
+        """
+        Beregn prosentvis endring for en statistikk over perioder.
+
+        Parametre:
+            city (str): Bykode.
+            element_id (str): ElementId å analysere.
+            time_offset (str | None): PT<n>H-offset. Finner minste hvis None.
+            statistic (str): 'mean', 'median' eller 'std'.
+            frequency (str): 'D', 'ME' (måned) eller 'YE' (år).
+            start (str | None): Startperiode som ISO-dato.
+            end (str | None): Sluttperiode som ISO-dato.
+
+        Returnerer:
+            pd.DataFrame: Kolonner ['referenceTime', 'value', 'percent_change'].
+        """
         valid_stats = {"mean", "median", "std"}
         if statistic not in valid_stats:
             raise ValueError(
@@ -107,38 +140,37 @@ class YearlyStats(DataLoader):
         if time_offset is None:
             time_offset = self._get_min_offset(city, element_id)
 
-        df = self._load_city(city)
-        df = df[
-            (df["elementId"] == element_id)
-            & (df["timeOffset"] == time_offset)
-        ].copy()
-
-        df["value"] = pd.to_numeric(df["value"], errors="coerce")
-        df["referenceTime"] = pd.to_datetime(
-            df["referenceTime"], utc=True
+        df = (
+            self._load_city(city)
+            .query(
+                "elementId == @element_id and timeOffset == @time_offset"
+            )
+            .assign(
+                value=lambda d: pd.to_numeric(d["value"], errors="coerce"),
+                referenceTime=lambda d: pd.to_datetime(
+                    d["referenceTime"], utc=True
+                ),
+            )
+            .set_index("referenceTime")
+            .sort_index()
         )
-        df.set_index("referenceTime", inplace=True)
-        df.sort_index(inplace=True)
 
+        # Filtrer periode
         if start or end:
             mask = pd.Series(True, index=df.index)
             if start:
-                mask &= df.index >= pd.to_datetime(start).tz_localize(
-                    "UTC"
-                )
+                mask &= df.index >= pd.to_datetime(start).tz_localize("UTC")
             if end:
-                mask &= df.index <= pd.to_datetime(end).tz_localize(
-                    "UTC"
-                )
+                mask &= df.index <= pd.to_datetime(end).tz_localize("UTC")
             df = df[mask]
 
         resampled = df["value"].resample(frequency)
-        agg_map = {
+        agg_funcs = {
             "mean": resampled.mean,
             "median": resampled.median,
             "std": lambda: resampled.std(ddof=0),
         }
-        series = agg_map[statistic]()
+        series = agg_funcs[statistic]()
 
         out = pd.DataFrame({"value": series})
         out["percent_change"] = out["value"].pct_change() * 100
@@ -158,7 +190,19 @@ class YearlyStats(DataLoader):
         remove_outliers: bool = False,
         statistic: str = "mean",
     ) -> pd.DataFrame:
-        """Beregn klimatologisk månedlig statistikk."""
+        """
+        Beregn gjennomsnittelig månedlig statistisk verdi (klimatologi).
+
+        Parametre:
+            city (str): Bykode.
+            element_id (str): ElementId å analysere.
+            time_offset (str | None): PT<n>H-offset. Finner minste hvis None.
+            remove_outliers (bool): Om outliers skal fjernes.
+            statistic (str): 'mean', 'median' eller 'std'.
+
+        Returnerer:
+            pd.DataFrame: Kolonner ['month', 'month_name', 'value'].
+        """
         valid_stats = {"mean", "median", "std"}
         if statistic not in valid_stats:
             raise ValueError(
@@ -171,8 +215,7 @@ class YearlyStats(DataLoader):
         df = (
             self._load_city(city)
             .query(
-                "elementId == @element_id and "
-                "timeOffset == @time_offset"
+                "elementId == @element_id and timeOffset == @time_offset"
             )
             .copy()
         )
@@ -188,19 +231,16 @@ class YearlyStats(DataLoader):
             df.loc[mask, "value"] = pd.NA
 
         df["month"] = df["referenceTime"].dt.month
-        agg_map = {
+        agg_funcs = {
             "mean": df.groupby("month")["value"].mean,
             "median": df.groupby("month")["value"].median,
-            "std": lambda: df.groupby("month")["value"].std(
-                ddof=0
-            ),
+            "std": lambda: df.groupby("month")["value"].std(ddof=0),
         }
-        clim = agg_map[statistic]().reset_index()
-        clim = clim.rename(columns={"value": "value"})
-        clim["month_name"] = clim["month"].apply(
+        result = agg_funcs[statistic]().reset_index(name="value")
+        result["month_name"] = result["month"].apply(
             lambda m: calendar.month_abbr[m].capitalize()
         )
-        return clim[["month", "month_name", "value"]]
+        return result[["month", "month_name", "value"]]
 
 
 __all__ = ["YearlyStats"]
