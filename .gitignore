@@ -4,14 +4,11 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Har kommentert ut for å ta med .env i git repo
-# .env
-# *.env
-
 # Miljøfiler
 venv/
 .envrc
-
+.env
+*.env
 
 # Jupyter Notebook metadata
 .ipynb_checkpoints/
