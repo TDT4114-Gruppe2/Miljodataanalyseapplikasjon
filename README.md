@@ -4,6 +4,52 @@ Dette prosjektet tar for seg en analyse av værdata fra Oslo og Tromsø fra år 
 
 Dataene som hentes ut er fra meteorologisk institutt som er en offisiell og anerkjent kilde for metorologiske observasjoner i Norge som håndterer Norges historiske værdata. Det er enkelt å hente ut data på JSON-foramt fra deres Frost-API og dataene er av høy kvalitet som et resultat av deres profesjonalitet. For oppgavespesifikk informasjon se noteboks/mappeX.ipynb.
 
+# Hvordan kjøre prosjektet
+
+## 1. Kjør følgende kommandoer i terminalen for å laste ned avhengigheter
+python -m venv venv  # (valgfritt, men anbefalt)
+
+source venv/bin/activate  # (eller "venv\Scripts\activate" på Windows)
+
+pip install -r requirements.txt
+
+
+## 2. Hente data fra API
+
+Kjør getvaerdata.ipynb
+
+
+## 3. Formattere dataene til CSV
+
+Kjør readvaerdata.ipynb
+
+
+## 4. Se statistiske verdier for dataene
+
+Kjør analysis.py
+
+
+## 5. Se grafer og figurer av dataene
+
+Kjør alle notebooks i mappen 'visualization'
+
+
+## 6.  for å forutsi om det blir nedbør i morgen 
+
+Kjør prediction.ipynb
+
+
+## 7. Se manglende verdier (valgfritt)
+
+Kjør findmissingdata.ipynb
+
+
+# Testing
+
+## Kjøring av tester
+
+Testene sjekker alle python-filer og er plassert i mappen 'tests'. For å kjøre testene, benytt den innebygde funksjonen til VSCode.
+
 
 ## Utvikling av prosjeketet
 

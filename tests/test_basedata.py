@@ -1,119 +1,104 @@
+"""Test basedata.py."""
+from datetime import timezone
 import os
 import pandas as pd
-import pytest
-from datetime import datetime
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import tempfile
+import unittest
+
 from src.analysis.basedata import DataLoader
 
 
-@pytest.fixture
-def tmp_data_dir(tmp_path):
-    """Oppretter en midlertidig mappe for CSV-filer."""
-    d = tmp_path / "data"
-    d.mkdir()
-    return d
+class TestDataLoader(unittest.TestCase):
+    """Test DataLoader."""
+
+    def setUp(self):
+        """Lag en midlertidig katalog for testing."""
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.data_dir = self.tmpdir.name
+
+    def tearDown(self):
+        """Fjern den midlertidige katalogen."""
+        self.tmpdir.cleanup()
+
+    def _write_csv(self, city, df):
+        """Skriv df til CSV i testkatalogen."""
+        path = os.path.join(self.data_dir, f"vaerdata_{city}.csv")
+        df.to_csv(path, index=False)
+        return path
+
+    def test_load_nonexistent_raises(self):
+        """Sjekk at DataLoader kaster feil om filen ikke finnes."""
+        loader = DataLoader(self.data_dir)
+        with self.assertRaises(FileNotFoundError) as cm:
+            loader._load_city('missingcity')
+        self.assertIn('Fant ikke datafil', str(cm.exception))
+
+    def test_load_missing_referencetime_column(self):
+        """Sjekk at DataLoader kaster feil om referenceTime mangler."""
+        df = pd.DataFrame({'foo': [1, 2, 3]})
+        self._write_csv('testcity', df)
+        loader = DataLoader(self.data_dir)
+        with self.assertRaises(KeyError) as cm:
+            loader._load_city('testcity')
+        self.assertIn("'referenceTime' mangler", str(cm.exception))
+
+    def test_load_converts_referencetime(self):
+        """Sjekk at referenceTime konverteres til datetime med UTC."""
+        df = pd.DataFrame({
+            'referenceTime': ['2021-01-01T00:00:00Z', '2021-01-02T12:30:00Z'],
+            'elementId': ['e1', 'e2'],
+            'timeOffset': ['PT1H', 'PT2H'],
+            'value': ['10', '20'],
+        })
+        self._write_csv('city1', df)
+        loader = DataLoader(self.data_dir)
+        loaded = loader._load_city('city1')
+        self.assertIn('referenceTime', loaded.columns)
+        self.assertTrue(pd.api.types.is_datetime64_ns_dtype(
+            loaded['referenceTime']))
+        self.assertEqual(loaded['referenceTime'].dt.tz, timezone.utc)
+
+    def test_get_min_offset_normal(self):
+        """Lag en df med gyldig timeOffset."""
+        df = pd.DataFrame({
+            'referenceTime': ['2021-01-01T00:00:00Z']*3,
+            'elementId': ['e']*3,
+            'timeOffset': ['PT5H', 'PT2H', 'PT10H'],
+            'value': ['1', '2', '3'],
+        })
+        self._write_csv('cityA', df)
+        loader = DataLoader(self.data_dir)
+        result = loader._get_min_offset('cityA', 'e')
+        self.assertEqual(result, 'PT2H')
+
+    def test_get_min_offset_no_offsets_raises(self):
+        """Lag en df uten gyldige timeOffset for elementId."""
+        df = pd.DataFrame({
+            'referenceTime': ['2021-01-01T00:00:00Z'],
+            'elementId': ['other'],
+            'timeOffset': ['PT1H'],
+            'value': ['5'],
+        })
+        self._write_csv('cityB', df)
+        loader = DataLoader(self.data_dir)
+        with self.assertRaises(ValueError) as cm:
+            loader._get_min_offset('cityB', 'e')
+        self.assertIn('Ingen timeOffset funnet', str(cm.exception))
+
+    def test_get_min_offset_invalid_format_raises(self):
+        """Lag en df med ugyldige format for timeOffset."""
+        df = pd.DataFrame({
+            'referenceTime': ['2021-01-01T00:00:00Z']*2,
+            'elementId': ['e', 'e'],
+            'timeOffset': ['BAD', 'WRONG'],
+            'value': ['1', '2'],
+        })
+        self._write_csv('cityC', df)
+        loader = DataLoader(self.data_dir)
+        with self.assertRaises(ValueError) as cm:
+            loader._get_min_offset('cityC', 'e')
+        self.assertIn('Fant ingen gyldige PT', str(cm.exception))
 
 
-def write_csv(path, df):
-    """Hjelpefunksjon: skriver en DataFrame til gitt sti."""
-    df.to_csv(path, index=False)
-
-
-def test_load_city_success(tmp_data_dir):
-    # Lag en enkel CSV med referenceTime-kolonne
-    df = pd.DataFrame({
-        "sourceId": ["A"],
-        "referenceTime": ["2023-01-01T12:00:00Z"],
-        "elementId": ["foo"],
-        "value": [1.0],
-        "timeOffset": ["PT0H"]
-    })
-    csv_path = tmp_data_dir / "vaerdata_oslo.csv"
-    write_csv(csv_path, df)
-
-    dl = DataLoader(data_dir=str(tmp_data_dir))
-    out = dl._load_city("oslo")
-
-    # Sjekk at vi får en DataFrame tilbake
-    assert isinstance(out, pd.DataFrame)
-    # referenceTime er konvertert til datetime64[ns, UTC]
-    assert out["referenceTime"].dtype == "datetime64[ns, UTC]"
-    # Verdien skal være korrekt
-    assert out["referenceTime"].iloc[0] == pd.Timestamp("2023-01-01T12:00:00Z")
-
-
-def test_load_city_missing_file(tmp_data_dir):
-    dl = DataLoader(data_dir=str(tmp_data_dir))
-    with pytest.raises(FileNotFoundError) as exc:
-        dl._load_city("oslo")
-    assert "Fant ikke datafil" in str(exc.value)
-
-
-def test_load_city_missing_referenceTime(tmp_data_dir):
-    # Skriv en CSV uten referenceTime-kolonnen
-    df = pd.DataFrame({
-        "sourceId": ["A"],
-        "elementId": ["foo"],
-        "value": [1.0],
-        "timeOffset": ["PT0H"]
-    })
-    csv_path = tmp_data_dir / "vaerdata_oslo.csv"
-    write_csv(csv_path, df)
-
-    dl = DataLoader(data_dir=str(tmp_data_dir))
-    with pytest.raises(KeyError) as exc:
-        dl._load_city("oslo")
-    msg = str(exc.value)
-    assert "Kolonnen 'referenceTime' mangler" in msg
-
-
-def test_get_min_offset_success(tmp_data_dir):
-    # Lag en CSV med flere timeOffset-verdier for én elementId
-    df = pd.DataFrame({
-        "sourceId": ["A", "A", "A"],
-        "referenceTime": ["2023-01-01", "2023-01-01", "2023-01-01"],
-        "elementId": ["foo", "foo", "foo"],
-        "value": [1, 2, 3],
-        "timeOffset": ["PT6H", "PT0H", "PT12H"]
-    })
-    write_csv(tmp_data_dir / "vaerdata_oslo.csv", df)
-
-    dl = DataLoader(data_dir=str(tmp_data_dir))
-    offset = dl._get_min_offset("oslo", "foo")
-    assert offset == "PT0H"
-
-
-def test_get_min_offset_no_offsets(tmp_data_dir):
-    # CSV finnes, men ingen rad med elementId "bar"
-    df = pd.DataFrame({
-        "sourceId": ["A"],
-        "referenceTime": ["2023-01-01"],
-        "elementId": ["foo"],
-        "value": [1],
-        "timeOffset": ["PT0H"]
-    })
-    write_csv(tmp_data_dir / "vaerdata_oslo.csv", df)
-
-    dl = DataLoader(data_dir=str(tmp_data_dir))
-    with pytest.raises(ValueError) as exc:
-        dl._get_min_offset("oslo", "bar")
-    assert "Ingen timeOffset funnet" in str(exc.value)
-
-
-def test_get_min_offset_no_valid_pt(tmp_data_dir):
-    # CSV har elementId, men timeOffset er ikke PTnH-format
-    df = pd.DataFrame({
-        "sourceId": ["A", "A"],
-        "referenceTime": ["2023-01-01", "2023-01-01"],
-        "elementId": ["foo", "foo"],
-        "value": [1, 2],
-        "timeOffset": ["ABC", "123"]
-    })
-    write_csv(tmp_data_dir / "vaerdata_oslo.csv", df)
-
-    dl = DataLoader(data_dir=str(tmp_data_dir))
-    with pytest.raises(ValueError) as exc:
-        dl._get_min_offset("oslo", "foo")
-    msg = str(exc.value)
-    assert "Fant ingen gyldige PT⟨n⟩H‑offsets" in msg
+if __name__ == '__main__':
+    unittest.main()

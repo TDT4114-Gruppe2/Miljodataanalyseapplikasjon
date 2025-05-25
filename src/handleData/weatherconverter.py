@@ -1,38 +1,23 @@
 """Konverterer værdata fra JSON til to CSV-filer, én per by."""
-
 import json
 import os
-import sys
-
 import pandas as pd
 from pandasql import sqldf
+import sys
 
 
 class WeatherConverter:
-    """Konverterer JSON til DataFrame og lagrer CSV per by."""
+    """Konverter JSON til df og lagrer CSV per by."""
 
     def __init__(self, json_path: str, output_dir: str) -> None:
-        """
-        Initialiserer converter med sti til JSON og utmappe.
-
-        Parametre:
-            json_path (str): Sti til input-JSON.
-            output_dir (str): Katalog for utdata CSV-filer.
-        """
+        """Initialisér converter med sti til JSON og utmappe."""
         self.json_path = json_path
         self.output_dir = output_dir
         self.data: dict | None = None
         self.df: pd.DataFrame | None = None
 
     def load_data(self) -> dict:
-        """
-        Leser og validerer JSON-filen.
-
-        Returnerer:
-            dict: Lastet JSON-innhold under nøkkel 'data'.
-
-        Avslutter programmet ved feil.
-        """
+        """Les JSON-data fra fil og valider innholdet."""
         try:
             with open(self.json_path, "r", encoding="utf-8") as f:
                 self.data = json.load(f)
@@ -53,14 +38,7 @@ class WeatherConverter:
         return self.data
 
     def convert_to_dataframe(self) -> pd.DataFrame:
-        """
-        Flater ut observasjoner til en pandas DataFrame.
-
-        Returnerer:
-            pd.DataFrame: Kolonner:
-                sourceId, referenceTime, timeOffset,
-                elementId, value, unit
-        """
+        """Flat ut JSON-data til en df."""
         if self.data is None:
             raise RuntimeError("Data ikke lastet – kjør load_data() først")
 
@@ -83,9 +61,7 @@ class WeatherConverter:
         return self.df
 
     def run_queries(self) -> None:
-        """
-        Kjører en enkel SQL-spørring mot DataFrame og skriver resultat.
-        """
+        """Kjør en enkel SQL-spørring mot df og skriv resultat."""
         if self.df is None:
             raise RuntimeError(
                 "DataFrame ikke klar – kjør convert_to_dataframe() først")
@@ -98,9 +74,7 @@ class WeatherConverter:
         print(result)
 
     def save_city_data(self) -> None:
-        """
-        Lagrer CSV for hver by basert på sourceId.
-        """
+        """Lagre CSV for hver by basert på sourceId."""
         if self.df is None:
             raise RuntimeError(
                 "DataFrame ikke klar – kjør convert_to_dataframe() først")
