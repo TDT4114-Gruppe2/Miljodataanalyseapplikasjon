@@ -53,7 +53,7 @@ class TestMissingDataVisualizer(unittest.TestCase):
             viz.df_missing['date']))
 
     def test_get_summary(self):
-        """Tester at sammendrag DataFrame blir generert riktig."""
+        """Tester at sammendrag-df blir generert riktig."""
         viz = MissingDataVisualizer(self.csv_path)
         summary = viz.get_summary()
         self.assertListEqual(list(summary.columns), [

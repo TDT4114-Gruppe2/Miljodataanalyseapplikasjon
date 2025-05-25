@@ -78,15 +78,7 @@ class MissingDataVisualizer:
         plt.show()
 
     def prepare_city_wide(self, city_name: str) -> pd.DataFrame:
-        """
-        Lag bred DataFrame med indikatorer for en by.
-
-        Parametre:
-            city_name (str): "Oslo" eller "Tromsø".
-
-        Returnerer:
-            pd.DataFrame: Indikator (1) for manglende.
-        """
+        """Lag bred df med indikatorer for manglende data i en by."""
         df = self.df_missing.copy()
         df["missing"] = None
         df.loc[df["oslo_value"].isna(), "missing"] = "Oslo"
@@ -141,16 +133,7 @@ class MissingDataVisualizer:
         city_name: str,
         param_order: list[str] | None = None,
     ) -> pd.DataFrame:
-        """
-        Lag bred DataFrame over tid med råverdier for en by.
-
-        Parametre:
-            city_name (str): "Oslo" eller "Tromsø".
-            param_order (list[str] | None): Kolonne-rekkefølge.
-
-        Returnerer:
-            pd.DataFrame: Bred format med dato-indeks.
-        """
+        """Lag bred DataFrame over tid med råverdier for en by."""
         slug = (
             city_name.lower().replace("ø", "o").replace("æ", "ae").replace("å", "a")
         )

@@ -143,7 +143,7 @@ class TestClimatology(unittest.TestCase):
                 row.month_name, calendar.month_abbr[row.month].capitalize())
 
     def test_remove_outliers(self):
-        """Test at månedlig gjennomsnitt uten uteliggere fungerer."""
+        """Test at månedlig gjennomsnitt uten utliggere fungerer."""
         df = self.loader.climatological_monthly_mean(
             'city', 'e', remove_outliers=True)
         self.assertTrue(all(df['value'].notna()))

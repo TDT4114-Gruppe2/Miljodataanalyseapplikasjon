@@ -104,7 +104,7 @@ class TestWeatherConverter(unittest.TestCase):
         self.assertIsNone(conv.run_queries())
 
     def test_save_city_data_without_df(self):
-        """Test at save_city_data uten DataFrame gir feil."""
+        """Test at save_city_data uten df gir feil."""
         conv = WeatherConverter(self.json_path, self.output_dir)
         with self.assertRaises(RuntimeError):
             conv.save_city_data()

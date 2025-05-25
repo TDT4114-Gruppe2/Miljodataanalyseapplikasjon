@@ -12,7 +12,7 @@ class TemperatureRangeConverter:
         os.makedirs(self.output_dir, exist_ok=True)
 
     def _compute_daily_range(self, df_city: pd.DataFrame) -> pd.DataFrame:
-        """Returnerer DataFrame med nytt element 'range(air_temperature P1D)'."""
+        """Returnerer df med nytt element 'range(air_temperature P1D)'."""
         df_mm = df_city[df_city["elementId"].isin([
             "max(air_temperature P1D)",
             "min(air_temperature P1D)",

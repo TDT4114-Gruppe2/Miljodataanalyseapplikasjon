@@ -3,8 +3,8 @@ import json
 import os
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
 from requests.exceptions import HTTPError
+from unittest.mock import patch, MagicMock
 
 from src.fetchData.fetchvaerdata import WeatherFetcher
 
@@ -13,23 +13,21 @@ class TestWeatherFetcher(unittest.TestCase):
     """Klasse for alle tester til filen."""
 
     def setUp(self):
-        """Setter opp testmiljøet med en klient-ID."""
+        """Sett opp testmiljø."""
         self.client_id = "test_id"
         self.fetcher = WeatherFetcher(self.client_id)
 
     @patch("requests.get")
     def test_fetch_weather_data_success(self, mock_get):
-        """Tester at værdata hentes korrekt fra Frost-API."""
+        """Test at værdata hentes korrekt fra Frost-API."""
         expected_json = {"key": "value"}
         mock_response = MagicMock()
         mock_response.raise_for_status.return_value = None
         mock_response.json.return_value = expected_json
         mock_get.return_value = mock_response
 
-        # Act
         result = self.fetcher.fetch_weather_data()
 
-        # Assert
         mock_get.assert_called_once_with(
             "https://frost.met.no/observations/v0.jsonld",
             params={
@@ -50,33 +48,27 @@ class TestWeatherFetcher(unittest.TestCase):
     @patch("requests.get")
     def test_fetch_weather_data_http_error(self, mock_get):
         """Tester at HTTP-feil håndteres korrekt ved henting av værdata."""
-        # Arrange
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = HTTPError(
             "Error fetching data"
         )
         mock_get.return_value = mock_response
 
-        # Act & Assert
         with self.assertRaises(HTTPError):
             self.fetcher.fetch_weather_data()
 
     def test_write_json_to_file(self):
         """Tester at JSON-data skrives til fil korrekt."""
-        # Arrange
         data = {"foo": [1, 2, 3], "bar": {"baz": True}}
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = os.path.join(tmpdir, "output.json")
 
-            # Act
             self.fetcher.write_json_to_file(data, file_path)
 
-            # Assert
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
             loaded = json.loads(content)
             self.assertEqual(loaded, data)
-            # Sjekker formatering
             self.assertIn("\n", content)
             self.assertTrue(content.startswith("{"))
             self.assertIn("    \"foo\"", content)

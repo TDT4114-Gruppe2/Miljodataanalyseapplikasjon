@@ -1,12 +1,15 @@
+"""Interpolering av værdata."""
 import pandas as pd
 from statsmodels.tsa.seasonal import seasonal_decompose
 
 
 class WeatherDataPipeline:
     """
-    Pipeline for interpolering og konvertering av værdata fra rå, langt format
-    til imputert, langt format. Kombinerer interpolering (lineær + sesong) med
-    konvertering mellom bredt og langt CSV-format.
+    Pipeline for interpolering og konvertering av værdata.
+
+    fra rå, langt format til imputert, langt format. Kombinerer
+    interpolering (lineær + sesong) med konvertering mellom bredt
+    og langt CSV-format.
     """
 
     def __init__(
@@ -15,22 +18,13 @@ class WeatherDataPipeline:
         seasonal_period: int = 365,
         model: str = "additive",
     ) -> None:
-        """
-        Initialiser pipelinen.
-
-        Args:
-            small_gap_days (int): Maks antall dager for lineær interpolering.
-            seasonal_period (int): Periode for sesongdekomponering (årsdøgn).
-            model (str): Modelltype ('additive' eller 'multiplicative').
-        """
+        """Initialisér pipelinen."""
         self.small_gap_days = small_gap_days
         self.seasonal_period = seasonal_period
         self.model = model
 
     def _infer_source_id(self, path: str) -> str:
-        """
-        Utled sourceId fra filsti basert på bynavn.
-        """
+        """Utled sourceId fra filsti basert på bynavn."""
         p = path.lower()
         if "oslo" in p:
             return "SN18700:0"
@@ -39,9 +33,7 @@ class WeatherDataPipeline:
         raise ValueError(f"Kunne ikke utlede sourceId fra '{path}'")
 
     def _format_time_offset(self, dt: pd.Timestamp) -> str:
-        """
-        Formater tidsdifferanse fra midnatt som ISO 8601-periode.
-        """
+        """Formatér tidsdifferanse fra midnatt som ISO 8601-periode."""
         hours = dt.hour
         minutes = dt.minute
         offset = f"PT{hours}H"
@@ -50,9 +42,7 @@ class WeatherDataPipeline:
         return offset
 
     def _map_unit(self, element: str) -> str:
-        """
-        Map elementId til måleenhet.
-        """
+        """Map elementId til måleenhet."""
         if "temperature" in element:
             return "degC"
         if "wind_speed" in element:
@@ -62,9 +52,7 @@ class WeatherDataPipeline:
         return ""
 
     def _seasonal_impute(self, series: pd.Series) -> pd.Series:
-        """
-        Utfør sesongdekomponering og fyll større hull i serien.
-        """
+        """Utfør sesongdekomponering og fyll større hull i serien."""
         temp = series.interpolate(
             method="time",
             limit_direction="both",
@@ -84,9 +72,7 @@ class WeatherDataPipeline:
         return imputed.ffill().bfill()
 
     def impute_wide(self, wide_df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Imputer bredt format DataFrame (DatetimeIndex, kolonner=elementId).
-        """
+        """Imputer df på bredt format (DatetimeIndex, kolonner=elementId)."""
         df = wide_df.copy()
         df = df.interpolate(
             method="time",
@@ -98,14 +84,7 @@ class WeatherDataPipeline:
         return df
 
     def process(self, input_file: str, output_file: str) -> None:
-        """
-        Les et langt-format CSV, interpoler og skriv imputert CSV i langt format.
-
-        Args:
-            input_file (str): Raw CSV med kolonner
-                [referenceTime, timeOffset, elementId, value]
-            output_file (str): CSV for imputert output i samme langt-format.
-        """
+        """Les CSV, interpolér og skriv imputert CSV."""
         # Les inn data
         df_long = pd.read_csv(
             input_file,
