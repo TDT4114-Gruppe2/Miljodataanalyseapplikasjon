@@ -62,7 +62,8 @@ class TestWeatherDataPipeline(unittest.TestCase):
 
     def test_impute_wide_with_missing_and_seasonal(self):
         """Tester at breddeformat med manglende verdier interpoleres riktig."""
-        def fake_decompose(series):
+        def fake_decompose(series,
+                           model=None, period=None, extrapolate_trend=None):
             """Simulerer decomp uten ekte data."""
             return DummyDecomp(trend=series,
                                resid=pd.Series(0, index=series.index),
@@ -72,7 +73,6 @@ class TestWeatherDataPipeline(unittest.TestCase):
         dates = pd.date_range('2025-01-01', periods=3, freq='D')
         wide = pd.DataFrame({'e1': [1, None, 3]}, index=dates)
         out = self.pipeline.impute_wide(wide)
-        # Linear interpolation fills middle to 2.0
         self.assertAlmostEqual(out.loc[dates[1], 'e1'], 2.0)
 
     def test_process_end_to_end(self):
@@ -90,18 +90,17 @@ class TestWeatherDataPipeline(unittest.TestCase):
             })
             df.to_csv(input_path, index=False)
 
-            def fake_decompose(series):
+            def fake_decompose(series, model=None,
+                               period=None, extrapolate_trend=None):
                 """Simulerer decomp uten ekte data."""
                 return DummyDecomp(trend=series.fillna(method='ffill'),
                                    resid=pd.Series(0, index=series.index),
                                    seasonal=pd.Series(0, index=series.index))
             interp_mod.seasonal_decompose = fake_decompose
 
-            # Act
             pipeline = WeatherDataPipeline()
             pipeline.process(input_path, output_path)
 
-            # Assert
             self.assertTrue(os.path.exists(output_path))
             out = pd.read_csv(output_path)
             unique_pairs = out.drop_duplicates(
