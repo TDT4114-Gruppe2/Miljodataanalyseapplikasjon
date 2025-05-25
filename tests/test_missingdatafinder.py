@@ -1,108 +1,127 @@
-"""Tester missingdatfinder.py."""
+"""Tester missingdatafinder.py."""
 import os
 import pandas as pd
+import tempfile
+import unittest
+from pandas.testing import assert_frame_equal
+from src.missingData.missingdatafinder import MissingWeatherDataAnalyzer
+from src.missingData.missingdatafinder import MissingDataConverter
 
 
-class MissingWeatherDataAnalyzer:
-    """Analyserer og finner manglende værdata i Oslo og Tromsø."""
+class TestMissingWeatherDataAnalyzer(unittest.TestCase):
+    """Testene for MissingWeatherDataAnalyzer."""
 
-    def __init__(self, oslo_path: str, tromso_path: str, output_dir: str):
-        """Setter opp filbaner for Oslo og Tromsø data."""
-        self.oslo_path = oslo_path
-        self.tromso_path = tromso_path
-        self.output_dir = output_dir
+    def setUp(self):
+        """Laerg midlertidig mappe og testdata."""
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.oslo_path = os.path.join(self.tempdir.name, 'oslo.csv')
+        self.tromso_path = os.path.join(self.tempdir.name, 'tromso.csv')
+        self.output_dir = os.path.join(self.tempdir.name, 'out')
 
-    def load_data(self):
-        """Laster inn værdata fra CSV-filer."""
-        self.df_oslo = pd.read_csv(self.oslo_path)
-        self.df_tromso = pd.read_csv(self.tromso_path)
+        df_oslo = pd.DataFrame({
+            'referenceTime': ['2025-05-01T00:00:00Z', '2025-05-01T01:00:00Z'],
+            'timeOffset': [0, 60],
+            'elementId': ['e1', 'e2'],
+            'value': [10, None]
+        })
+        df_tromso = pd.DataFrame({
+            'referenceTime': ['2025-05-01T00:00:00Z', '2025-05-01T01:00:00Z'],
+            'timeOffset': [0, 60],
+            'elementId': ['e1', 'e2'],
+            'value': [None, 20]
+        })
+        df_oslo.to_csv(self.oslo_path, index=False)
+        df_tromso.to_csv(self.tromso_path, index=False)
 
-        # Legg til date-kolonne ved å hente de første 10 tegn fra referenceTime
-        self.df_oslo["date"] = self.df_oslo["referenceTime"].str[:10]
-        self.df_tromso["date"] = self.df_tromso["referenceTime"].str[:10]
-
-    def identify_missing(self):
-        """Identifiserer manglende data i Oslo og Tromsø."""
-        # Forbered dataframes med verdier for Oslo og Tromsø
-        oslo_small = (
-            self.df_oslo
-            [["date", "timeOffset", "elementId", "value"]]
-            .copy()
-            .rename(columns={"value": "oslo_value"})
-        )
-        tromso_small = (
-            self.df_tromso
-            [["date", "timeOffset", "elementId", "value"]]
-            .copy()
-            .rename(columns={"value": "tromso_value"})
-        )
-
-        # Slå sammen outer for å finne alle kombinasjoner
-        merged = pd.merge(
-            oslo_small,
-            tromso_small,
-            on=["date", "timeOffset", "elementId"],
-            how="outer"
+        self.analyzer = MissingWeatherDataAnalyzer(
+            self.oslo_path, self.tromso_path, self.output_dir
         )
 
-        # Filtrer der Oslo mangler men Tromsø har verdi
-        missing_oslo = merged[
-            merged["oslo_value"].isna() & merged["tromso_value"].notna()
-        ].copy()
-        missing_oslo["city"] = "Oslo"
+    def tearDown(self):
+        """Fjerner midlertidig mappe."""
+        self.tempdir.cleanup()
 
-        # Filtrer der Tromsø mangler men Oslo har verdi
-        missing_tromso = merged[
-            merged["tromso_value"].isna() & merged["oslo_value"].notna()
-        ].copy()
-        missing_tromso["city"] = "Tromsø"
+    def test_load_and_identify_missing(self):
+        """Tester at manglende data blir identifisert riktig."""
+        # Act
+        self.analyzer.load_data()
+        self.analyzer.identify_missing()
+        df_missing = self.analyzer.df_missing
 
-        # Slå sammen manglende rader
-        self.df_missing = pd.concat(
-            [missing_oslo, missing_tromso],
-            ignore_index=True
-        )
+        # Assert
+        expected_cols = ['date', 'timeOffset', 'elementId',
+                         'oslo_value', 'tromso_value', 'city']
+        self.assertListEqual(
+            sorted(df_missing.columns.tolist()), sorted(expected_cols))
 
-    def save_missing_data(self):
-        """Lagrer manglende data i CSV-filer."""
-        os.makedirs(self.output_dir, exist_ok=True)
-        missing_path = os.path.join(self.output_dir, "missing_in_both.csv")
-        summary_path = os.path.join(self.output_dir, "missing_summary.csv")
-
-        # Skriv ut alle manglende data
-        self.df_missing.to_csv(missing_path, index=False, encoding="utf-8")
-
-        # Lag en oppsummering med antall manglende per by og element
-        missing_grouped = (
-            self.df_missing
-            .groupby(["city", "elementId"])
-            .size()
-            .reset_index(name="num_missing")
-            .sort_values(["city", "num_missing"], ascending=[True, False])
-        )
-        missing_grouped.to_csv(summary_path, index=False, encoding="utf-8")
-
-        print("Ferdig! Følgende CSV-filer er opprettet:")
-        print(" -", missing_path)
-        print(" -", summary_path)
+        actual = set(zip(df_missing['elementId'], df_missing['city']))
+        expected = {('e1', 'Tromsø'), ('e2', 'Oslo')}
+        self.assertSetEqual(actual, expected)
 
 
-class MissingDataConverter:
-    """Konverterer lagrede manglende verdier til et enklere format."""
+def test_save_missing_data(self):
+    """Tester at manglende data blir lagret riktig."""
+    self.analyzer.df_missing = pd.DataFrame({
+        'date': ['2025-05-01'],
+        'timeOffset': [0],
+        'elementId': ['e1'],
+        'oslo_value': [None],
+        'tromso_value': [15],
+        'city': ['Oslo']
+    })
+    # Act
+    self.analyzer.save_missing_data()
 
-    def __init__(self):
-        pass
+    # Assert
+    missing_path = os.path.join(self.output_dir, 'missing_in_both.csv')
+    summary_path = os.path.join(self.output_dir, 'missing_summary.csv')
+    self.assertTrue(os.path.exists(missing_path))
+    self.assertTrue(os.path.exists(summary_path))
 
-    def read_missing_values(self, path: str) -> pd.DataFrame:
-        df = pd.read_csv(path)
+    df_missing = pd.read_csv(missing_path)
+    df_summary = pd.read_csv(summary_path)
+    assert_frame_equal(df_missing, self.analyzer.df_missing)
+    self.assertEqual(len(df_summary), 1)
+    self.assertEqual(df_summary.loc[0, 'city'], 'Oslo')
+    self.assertEqual(df_summary.loc[0, 'elementId'], 'e1')
+    self.assertEqual(df_summary.loc[0, 'num_missing'], 1)
 
-        # Marker hvilken by som mangler verdi
-        df["missing"] = None
-        df.loc[df["oslo_value"].isna(), "missing"] = "Oslo"
-        df.loc[df["tromso_value"].isna(), "missing"] = "Tromsø"
 
-        # Returner relevant kolonner
-        return (
-            df[["date", "timeOffset", "elementId", "missing"]]
-            .reset_index(drop=True)
-        )
+class TestMissingDataConverter(unittest.TestCase):
+    """Tester MissingDataConverter."""
+
+    def setUp(self):
+        """Lager midlertidig mappe og testdata."""
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.csv_path = os.path.join(self.tempdir.name, 'missing.csv')
+
+        df = pd.DataFrame({
+            'date': ['2025-05-01', '2025-05-02', '2025-05-03'],
+            'timeOffset': [0, 0, 0],
+            'elementId': ['e1', 'e2', 'e3'],
+            'oslo_value': [None, 5, None],
+            'tromso_value': [10, None, None]
+        })
+        df.to_csv(self.csv_path, index=False)
+        self.converter = MissingDataConverter()
+
+    def tearDown(self):
+        """Fjerner midlertidig mappe."""
+        self.tempdir.cleanup()
+
+    def test_read_missing_values(self):
+        """Tester at manglende verdier blir lest riktig."""
+        # Act
+        df_out = self.converter.read_missing_values(self.csv_path)
+
+        # Assert
+        self.assertEqual(len(df_out), 3)
+        self.assertListEqual(df_out.columns.tolist(), [
+                             'date', 'timeOffset', 'elementId', 'missing'])
+        self.assertEqual(df_out.iloc[0]['missing'], 'Oslo')
+        self.assertEqual(df_out.iloc[1]['missing'], 'Tromsø')
+        self.assertEqual(df_out.iloc[2]['missing'], 'Tromsø')
+
+
+if __name__ == '__main__':
+    unittest.main()

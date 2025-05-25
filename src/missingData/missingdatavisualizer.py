@@ -1,12 +1,4 @@
-"""
-missing_data_visualizer.py
-
-Standalone module with MissingDataVisualizer class for creating summary bar plots,
-heatmaps, and missing-data timelines.
-
-Dependencies:
-    pandas, matplotlib, missingno
-"""
+"""Håndterer visualisering av manglende data fra CSV-filer."""
 
 import os
 import matplotlib.pyplot as plt
@@ -15,12 +7,7 @@ import missingno as msno
 
 
 def _validate_csv_path(path: str) -> None:
-    """
-    Sjekk at CSV-filen finnes.
-
-    Hever:
-        FileNotFoundError: Hvis filen ikke finnes.
-    """
+    """Sjekker at CSV-filen finnes."""
     if not os.path.isfile(path):
         raise FileNotFoundError(f"Missing-data CSV not found: {path}")
 
