@@ -3,8 +3,8 @@
 import calendar
 import pandas as pd
 
-from basedata import DataLoader
-from outlierdetector import OutlierDetector
+from src.analysis.basedata import DataLoader
+from src.analysis.outlierdetector import OutlierDetector
 
 
 class YearlyStats(DataLoader):

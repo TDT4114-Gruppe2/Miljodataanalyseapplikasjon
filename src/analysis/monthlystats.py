@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from basedata import DataLoader
+from src.analysis.basedata import DataLoader
 
 
 class MonthlyStats(DataLoader):

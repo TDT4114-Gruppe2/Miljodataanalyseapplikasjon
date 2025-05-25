@@ -9,8 +9,6 @@ Dependencies:
 """
 
 import os
-import warnings
-
 import matplotlib.pyplot as plt
 import pandas as pd
 import missingno as msno
