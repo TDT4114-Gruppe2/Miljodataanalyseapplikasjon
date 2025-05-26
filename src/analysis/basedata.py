@@ -13,12 +13,9 @@ class DataLoader:
     try:
         # Første forsøk: imputert data
         filename_template: str = "vaerdata_{city}_imputert.csv"
-        # Prøv å åpne filen (eller lese med pandas, alt etter behov)
     except FileNotFoundError:
         # Andre forsøk: rådata
         filename_template: str = "vaerdata_{city}.csv"
-
-
 
     def __init__(self, data_dir: str) -> None:
         """
