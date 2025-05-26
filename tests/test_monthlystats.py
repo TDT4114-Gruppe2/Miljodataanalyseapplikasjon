@@ -5,7 +5,7 @@ import pandas as pd
 import sys
 import unittest
 
-sys.path.append("src/analysis")
+sys.path.append("src/analyseData")
 
 from monthlystats import MonthlyStats
 

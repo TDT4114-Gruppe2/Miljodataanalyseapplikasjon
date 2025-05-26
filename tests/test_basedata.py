@@ -1,5 +1,4 @@
-"""Test basedata.py."""
-
+"""Tester basedata.py."""
 import os
 import pandas as pd
 import tempfile
@@ -17,14 +16,16 @@ class TestDataLoader(unittest.TestCase):
         """Lag en midlertidig katalog for testing."""
         self.tmpdir = tempfile.TemporaryDirectory()
         self.data_dir = self.tmpdir.name
+        self.template = DataLoader.filename_template
 
     def tearDown(self):
         """Fjern den midlertidige katalogen."""
         self.tmpdir.cleanup()
 
     def _write_csv(self, city, df):
-        """Skriv df til CSV i testkatalogen."""
-        path = os.path.join(self.data_dir, f"vaerdata_{city}.csv")
+        """Skriv df til CSV i testkatalogen ved å bruke DataLoader-malen."""
+        filename = self.template.format(city=city)
+        path = os.path.join(self.data_dir, filename)
         df.to_csv(path, index=False)
         return path
 

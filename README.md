@@ -38,7 +38,7 @@ Kjør interpolation.ipynb i interpolateData-mappen.
 
 ## 4. Se statistiske verdier for dataene
 
-Kjør analysis.ipynb i analysisData-mappen.
+Kjør analysis.ipynb i analyseData-mappen.
 
 
 ## 5. Se grafer og figurer av dataene

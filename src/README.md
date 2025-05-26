@@ -5,7 +5,7 @@ src-mappen inneholder alle klasser som utgjør funksjonaliteten i prosjektet. De
 
 ## analyseData
 
-analysis er den faktiske analysen av de innhentede og prosesserte dataene. Der beregnes gjennomsnitt, median og standardavvik.
+analyseData er den faktiske analysen av de innhentede og prosesserte dataene. Der beregnes blant annet gjennomsnitt, median og standardavvik.
 
 
 ## fetchData
