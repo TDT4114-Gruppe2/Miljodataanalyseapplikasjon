@@ -1,9 +1,12 @@
 """Tester missingdatafinder.py."""
+
 import os
 import pandas as pd
 import tempfile
 import unittest
+
 from pandas.testing import assert_frame_equal
+
 from src.missingData.missingdatafinder import MissingWeatherDataAnalyzer
 from src.missingData.missingdatafinder import MissingDataConverter
 

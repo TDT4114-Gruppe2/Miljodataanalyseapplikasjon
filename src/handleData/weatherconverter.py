@@ -1,9 +1,11 @@
 """Konverterer værdata fra JSON til to CSV-filer, én per by."""
+
 import json
 import os
 import pandas as pd
-from pandasql import sqldf
 import sys
+
+from pandasql import sqldf
 
 
 class WeatherConverter:

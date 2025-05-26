@@ -15,7 +15,8 @@ class OutlierDetector:
         Initialiserer detektor med valgt IQR-whisker.
 
         Parametre:
-            whisker (float | None): Faktor for whisker. Må være 1.5, 3.0 eller None.
+            whisker (float | None): Faktor for whisker.
+            Må være 1.5, 3.0 eller None.
 
         Hever:
             ValueError: Hvis whisker ikke er gyldig.
@@ -62,7 +63,8 @@ class OutlierDetector:
 
         Parametre:
             series (pd.Series): Numeriske data.
-            extreme (bool): Hvis True, bruk whisker=3.0; ellers 1.5 (hvis self.whisker=None).
+            extreme (bool): Hvis True, bruk whisker=3.0; ellers 1.5
+            (hvis self.whisker=None).
             whisker (float | None): Overstyr self.whisker hvis oppgitt.
 
         Returnerer:

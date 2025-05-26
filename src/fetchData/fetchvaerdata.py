@@ -1,7 +1,6 @@
 """Henter værdata fra met.no og lagrer det i en JSON-fil."""
 
 import json
-
 import requests
 
 

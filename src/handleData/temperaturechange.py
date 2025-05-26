@@ -1,4 +1,5 @@
 """Lager range-verdier for temperatur i CSV-filer."""
+
 import os
 import pandas as pd
 

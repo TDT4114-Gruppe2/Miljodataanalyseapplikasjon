@@ -1,10 +1,10 @@
 """Laster inn data fra CSV-filer."""
 
 import os
-import re
-from functools import lru_cache
-
 import pandas as pd
+import re
+
+from functools import lru_cache
 
 
 class DataLoader:
@@ -59,7 +59,8 @@ class DataLoader:
 
         Parametre:
             city (str): Bykode for data.
-            element_id (str): ElementId å sjekke, f.eks. "mean(air_temperature P1D)".
+            element_id (str): ElementId å sjekke,
+            f.eks. "mean(air_temperature P1D)".
 
         Returnerer:
             str: Den gyldige timeOffset med lavest timer.

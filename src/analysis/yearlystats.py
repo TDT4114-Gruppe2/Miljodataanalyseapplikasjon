@@ -3,8 +3,8 @@
 import calendar
 import pandas as pd
 
-from src.analysis.basedata import DataLoader
-from src.analysis.outlierdetector import OutlierDetector
+from basedata import DataLoader
+from outlierdetector import OutlierDetector
 
 
 class YearlyStats(DataLoader):
@@ -21,7 +21,8 @@ class YearlyStats(DataLoader):
 
         Parametre:
             data_dir (str): Katalog med CSV-filer.
-            whisker (float | None): Faktor for IQR-whisker (1.5, 3.0 eller None).
+            whisker (float | None): Faktor for IQR-whisker
+            (1.5, 3.0 eller None).
         """
         super().__init__(data_dir)
         self.detector = OutlierDetector(whisker)
@@ -46,7 +47,8 @@ class YearlyStats(DataLoader):
             aggregate (str | None): 'mean', 'sum', 'median', 'std' eller None.
 
         Returnerer:
-            pd.DataFrame: Kolonner ['year', 'value'] eller rådata hvis aggregate=None.
+            pd.DataFrame: Kolonner ['year', 'value']
+            eller rådata hvis aggregate=None.
 
         Hever:
             ValueError: Ved manglende data eller ugyldige parametre.
@@ -73,9 +75,12 @@ class YearlyStats(DataLoader):
 
             daily = df[df["referenceTime"].dt.year == year]
             if daily.empty:
-                raise ValueError(
-                    f"Ingen data for city={city!r}, element_id={element_id!r}, year={year}"
+                msg = (
+                    f"Ingen data for city={city!r}, "
+                    f"element_id={element_id!r}, "
+                    f"year={year}"
                 )
+                raise ValueError(msg)
             return daily.reset_index(drop=True)
 
         # Filtrer på år hvis spesifisert
@@ -124,7 +129,8 @@ class YearlyStats(DataLoader):
             end (str | None): Sluttperiode som ISO-dato.
 
         Returnerer:
-            pd.DataFrame: Kolonner ['referenceTime', 'value', 'percent_change'].
+            pd.DataFrame: Kolonner
+            ['referenceTime', 'value', 'percent_change'].
         """
         valid_stats = {"mean", "median", "std"}
         if statistic not in valid_stats:
