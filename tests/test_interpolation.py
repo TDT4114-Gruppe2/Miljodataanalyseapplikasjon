@@ -7,8 +7,8 @@ import unittest
 
 from pandas.testing import assert_frame_equal
 
-from src.interpolation.interpolation import WeatherDataPipeline
-import src.interpolation.interpolation as interp_mod
+from src.interpolateData.interpolation import WeatherDataPipeline
+import src.interpolateData.interpolation as interp_mod
 
 
 class DummyDecomp:

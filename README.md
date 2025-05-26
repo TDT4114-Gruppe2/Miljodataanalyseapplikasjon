@@ -6,7 +6,7 @@ Dataene som hentes ut er fra meteorologisk institutt som er en offisiell og aner
 
 
 
-# Hvordan kjøre prosjektet
+# Hvordan kjøre prosjektet i notebooks-mappen
 
 ## 1. Kjør følgende kommandoer i terminalen for å laste ned avhengigheter
 python -m venv venv  # (valgfritt, men anbefalt)
@@ -18,27 +18,27 @@ pip install -r requirements.txt
 
 ## 2. Hente data fra API
 
-Kjør getvaerdata.ipynb
+Kjør getvaerdata.ipynb i fetchData-mappen.
 
 
 ## 3. Formattere dataene til CSV
 
-Kjør readvaerdata.ipynb
+Kjør readvaerdata.ipynb i handleData-mappen.
 
 
 ## 3.1. Se manglende verdier (valgfritt)
 
-Kjør findmissingdata.ipynb
+Kjør findmissingdata.ipynb i missingData-mappen.
 
 
 ## 3.2. Interpolere dataene (valgfritt)
 
-Kjør interpolation.ipynb
+Kjør interpolation.ipynb i interpolateData-mappen.
 
 
 ## 4. Se statistiske verdier for dataene
 
-Kjør analysis.ipynb
+Kjør analysis.ipynb i analysisData-mappen.
 
 
 ## 5. Se grafer og figurer av dataene
@@ -48,7 +48,7 @@ Kjør alle notebooks i mappen 'visualization'
 
 ## 6.  for å forutsi om det blir nedbør i morgen 
 
-Kjør prediction.ipynb
+Kjør prediction.ipynb i prediction-mappen.
 
 
 

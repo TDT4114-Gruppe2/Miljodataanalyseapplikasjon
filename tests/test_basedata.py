@@ -7,7 +7,7 @@ import unittest
 
 from datetime import timezone
 
-from src.analysis.basedata import DataLoader
+from src.analyseData.basedata import DataLoader
 
 
 class TestDataLoader(unittest.TestCase):

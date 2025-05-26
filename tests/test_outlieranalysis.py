@@ -4,9 +4,9 @@ import calendar
 import pandas as pd
 import unittest
 
-from src.analysis.yearlystats import YearlyStats
-from src.analysis.outlieranalysis import OutlierAnalysis
-from src.analysis.outlierdetector import OutlierDetector
+from src.analyseData.yearlystats import YearlyStats
+from src.analyseData.outlieranalysis import OutlierAnalysis
+from src.analyseData.outlierdetector import OutlierDetector
 
 
 class DummyYearlyStats(YearlyStats):

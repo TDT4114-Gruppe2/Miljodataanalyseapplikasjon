@@ -3,8 +3,8 @@
 import pandas as pd
 import unittest
 
-from src.analysis.yearlystats import YearlyStats
-from src.analysis.outlierdetector import OutlierDetector
+from src.analyseData.yearlystats import YearlyStats
+from src.analyseData.outlierdetector import OutlierDetector
 
 
 class DummyYearlyStats(YearlyStats):
