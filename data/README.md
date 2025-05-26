@@ -8,7 +8,7 @@ Inneholder rådata som er hentet fra met.no sitt Frost-API. Disse dataene er på
 
 ## processed
 
-Inneholder bearbeidede data som er klargjort for analysen. Disse dataene tar utgangspunkt i JSON-filen fra raw-mappen, men er skrevet om til CSV. Her er det to filer, er for hver lokasjon, altså Oslo og Tromsø. Dataene er renset og inneholder kun de verdiene som er relevante for prosjektet. I tillegg er det lagt til en kolonne for lokasjon.
+Inneholder bearbeidede data som er klargjort for analysen. Disse dataene tar utgangspunkt i JSON-filen fra raw-mappen, men er skrevet om til CSV. Dataene er renset og inneholder kun de verdiene som er relevante for prosjektet. I tillegg er det lagt til en kolonne for lokasjon. Her er det to filer for hver av byene, imputert og ikke imputert, for om dataene er interpolert eller ikke.
 
 ## missing
 
