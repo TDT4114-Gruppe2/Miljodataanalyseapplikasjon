@@ -1,10 +1,12 @@
 """Tester missingdatavisualizer.py."""
+
 import matplotlib.pyplot as plt
 import missingno as msno
 import os
 import pandas as pd
 import tempfile
 import unittest
+
 from src.missingData.missingdatavisualizer import (
     _validate_csv_path,
     MissingDataVisualizer

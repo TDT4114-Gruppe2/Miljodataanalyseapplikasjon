@@ -1,23 +1,24 @@
 """Håndterer visualisering av manglende data fra CSV-filer."""
 
-import os
 import matplotlib.pyplot as plt
-import pandas as pd
 import missingno as msno
+import pandas as pd
+import os
 
 
 def _validate_csv_path(path: str) -> None:
-    """Sjekker at CSV-filen finnes."""
+    """Sjekk at CSV-filen finnes."""
     if not os.path.isfile(path):
         raise FileNotFoundError(f"Missing-data CSV not found: {path}")
 
 
 class MissingDataVisualizer:
     """
-    Visualiserer manglende data fra en CSV-fil.
+    Visualiser manglende data fra en CSV-fil.
 
     Metoder:
-        get_summary: Returnerer DataFrame med antall manglende per by/parameter.
+        get_summary: Returnerer DataFrame med
+        antall manglende per by/parameter.
         plot_summary_bar: Søyleplott av manglende antall.
         prepare_city_wide: Bred DataFrame med indikatorer.
         plot_heatmap: Korrelasjonsvarmekart for én by.
@@ -27,7 +28,7 @@ class MissingDataVisualizer:
 
     def __init__(self, missing_csv_path: str) -> None:
         """
-        Initialiser visualisator ved å laste inn CSV.
+        Initialisér visualisator ved å laste inn CSV.
 
         Parametre:
             missing_csv_path (str): Sti til CSV med manglende data.
@@ -60,13 +61,11 @@ class MissingDataVisualizer:
         return summary
 
     def plot_summary_bar(self, figsize: tuple[int, int] = (12, 6)) -> None:
-        """
-        Vis søyleplott av antall manglende pr parameter og by.
-        """
+        """Vis søyleplott av antall manglende pr parameter og by."""
         summary = self.get_summary()
         pivot = (
-            summary.pivot(index="elementId", columns="city", values="num_missing")
-            .fillna(0)
+            summary.pivot(index="elementId", columns="city",
+                          values="num_missing").fillna(0)
         )
         ax = pivot.plot.bar(figsize=figsize)
         ax.set_title("Manglende målinger per by og måletype")
@@ -135,7 +134,8 @@ class MissingDataVisualizer:
     ) -> pd.DataFrame:
         """Lag bred DataFrame over tid med råverdier for en by."""
         slug = (
-            city_name.lower().replace("ø", "o").replace("æ", "ae").replace("å", "a")
+            city_name.lower().replace("ø", "o")
+            .replace("æ", "ae").replace("å", "a")
         )
         col = f"{slug}_value"
         wide = (
@@ -154,9 +154,7 @@ class MissingDataVisualizer:
         figsize: tuple[int, int] = (12, 5),
         line_width: int = 6,
     ) -> None:
-        """
-        Plott tidslinje av manglende-perioder for en by.
-        """
+        """Plott tidslinje av manglende-perioder for en by."""
         city_map = {"Oslo": "oslo_value", "Tromsø": "tromso_value"}
         if city_name not in city_map:
             raise ValueError(
@@ -190,13 +188,15 @@ class MissingDataVisualizer:
             start = prev = dates[0]
             for d in dates[1:]:
                 if (d - prev).days > 1:
-                    ax.hlines(i, start, prev, color=color, linewidth=line_width)
+                    ax.hlines(i, start, prev, color=color,
+                              linewidth=line_width)
                     start = d
                 prev = d
             ax.hlines(i, start, prev, color=color, linewidth=line_width)
 
         for yr in years:
-            ax.axvline(yr, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
+            ax.axvline(yr, color="gray", linestyle="--",
+                       linewidth=0.8, alpha=0.7)
 
         ticks = [years[0]] + list(years[1::2])
         ax.set_xticks(ticks)

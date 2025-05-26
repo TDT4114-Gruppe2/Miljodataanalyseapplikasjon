@@ -1,10 +1,12 @@
 """Tester fetchvaerdata.py med negative og positive tester."""
+
 import json
 import os
 import tempfile
 import unittest
-from requests.exceptions import HTTPError
+
 from unittest.mock import patch, MagicMock
+from requests.exceptions import HTTPError
 
 from src.fetchData.fetchvaerdata import WeatherFetcher
 

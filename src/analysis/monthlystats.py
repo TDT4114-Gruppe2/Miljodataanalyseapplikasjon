@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from src.analysis.basedata import DataLoader
+from basedata import DataLoader
 
 
 class MonthlyStats(DataLoader):
@@ -21,7 +21,8 @@ class MonthlyStats(DataLoader):
 
         Parametre:
             df (pd.DataFrame): DataFrame med rådata.
-            year_month (str | None): År-måned streng (YYYY-MM) eller None for alle.
+            year_month (str | None): År-måned streng (YYYY-MM)
+            eller None for alle.
             element_id (str): ElementId å filtrere på.
             time_offset (str): PT<n>H offset.
 

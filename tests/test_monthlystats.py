@@ -1,9 +1,13 @@
 """Tester monthlystats.py."""
-import numpy as np
-import unittest
-import pandas as pd
 
-from src.analysis.monthlystats import MonthlyStats
+import numpy as np
+import pandas as pd
+import sys
+import unittest
+
+sys.path.append("src/analysis")
+
+from monthlystats import MonthlyStats
 
 
 class DummyLoader(MonthlyStats):

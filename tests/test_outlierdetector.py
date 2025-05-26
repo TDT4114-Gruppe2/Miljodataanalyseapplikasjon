@@ -1,4 +1,5 @@
 """Test outlierdeteector.py."""
+
 import calendar
 import pandas as pd
 import unittest

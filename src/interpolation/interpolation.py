@@ -1,5 +1,7 @@
 """Interpolering av værdata."""
+
 import pandas as pd
+
 from statsmodels.tsa.seasonal import seasonal_decompose
 
 

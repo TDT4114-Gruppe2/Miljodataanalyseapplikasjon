@@ -2,12 +2,12 @@
 
 import pandas as pd
 
-from src.analysis.basedata import DataLoader
-from src.analysis.outlierdetector import OutlierDetector
+from basedata import DataLoader
+from outlierdetector import OutlierDetector
 
 
 class OutlierAnalysis(DataLoader):
-    """Analyserer og rapporterer outliers per måned eller over statistic-variabler."""
+    """Analyse for å finne og håndtere outliers i data."""
 
     def __init__(
         self,
@@ -16,11 +16,12 @@ class OutlierAnalysis(DataLoader):
         whisker: float | None = None,
     ) -> None:
         """
-        Initialiserer OutlierAnalysis med data-katalog og whisker-verdi.
+        Initialisér OutlierAnalysis med data-katalog og whisker-verdi.
 
         Parametre:
             data_dir (str): Katalog med CSV-filer.
-            whisker (float | None): Faktor for IQR-whisker. Hvis None, bruker default.
+            whisker (float | None): Faktor for IQR-whisker.
+            Hvis None, bruker default.
         """
         super().__init__(data_dir)
         self.detector = OutlierDetector(whisker)

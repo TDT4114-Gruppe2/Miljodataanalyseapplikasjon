@@ -1,6 +1,8 @@
 """Modul for å analysere og konvertere manglende værdata i Oslo og Tromsø."""
+
 import os
 import pandas as pd
+
 from pandasql import sqldf
 
 
@@ -120,4 +122,5 @@ class MissingDataConverter:
         # Filtrer ut kun de radene som faktisk mangler verdi
         df_missing = df[df["missing"].notna()].copy()
 
-        return df_missing[["date", "timeOffset", "elementId", "missing"]].reset_index(drop=True)
+        return df_missing[["date", "timeOffset",
+                           "elementId", "missing"]].reset_index(drop=True)

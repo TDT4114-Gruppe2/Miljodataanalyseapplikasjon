@@ -1,9 +1,11 @@
 """Test basedata.py."""
-from datetime import timezone
+
 import os
 import pandas as pd
 import tempfile
 import unittest
+
+from datetime import timezone
 
 from src.analysis.basedata import DataLoader
 

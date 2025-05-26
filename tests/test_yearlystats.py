@@ -1,4 +1,5 @@
 """Tester yearlystats.py."""
+
 import pandas as pd
 import unittest
 
