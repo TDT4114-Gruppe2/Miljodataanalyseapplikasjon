@@ -4,6 +4,7 @@ Dette prosjektet tar for seg en analyse av værdata fra Oslo og Tromsø fra år 
 
 Dataene som hentes ut er fra meteorologisk institutt som er en offisiell og anerkjent kilde for metorologiske observasjoner i Norge som håndterer Norges historiske værdata. Det er enkelt å hente ut data på JSON-foramt fra deres Frost-API og dataene er av høy kvalitet som et resultat av deres profesjonalitet. For oppgavespesifikk informasjon se mappen notebooks.
 
+Merk at bilder av de interaktive Dash-apper ligger i resources-mappen ettersom de ikke vises uten å kjøre appene lokalt.
 
 
 # Hvordan kjøre prosjektet i notebooks-mappen
