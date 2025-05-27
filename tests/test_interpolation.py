@@ -1,4 +1,3 @@
-"""Tester basedata.py."""
 import os
 import pandas as pd
 import tempfile

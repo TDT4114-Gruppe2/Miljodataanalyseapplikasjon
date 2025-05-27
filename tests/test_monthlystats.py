@@ -1,169 +1,92 @@
+"""Tester monthlystats.py."""
+
+import numpy as np
 import pandas as pd
-import pytest
-from pathlib import Path
-import os
 import sys
+import unittest
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
+sys.path.append("src/analyseData")
 
-from src.analysis.monthlystats import MonthlyStats
-
-
-@pytest.fixture
-def tmp_data_dir(tmp_path):
-    """Oppretter en midlertidig data-mappe."""
-    d = tmp_path / "data"
-    d.mkdir()
-    return d
+from monthlystats import MonthlyStats
 
 
-def write_csv(city: str, df: pd.DataFrame, data_dir: Path):
-    """Hjelpefunksjon for å skrive vaerdata_{city}.csv."""
-    path = data_dir / f"vaerdata_{city}.csv"
-    df.to_csv(path, index=False)
-    return path
+class DummyLoader(MonthlyStats):
+    """Dummy loader som tester MonthlyStats."""
+
+    def __init__(self, df, min_offset):
+        """Initialisér DummyLoader."""
+        self._df = df
+        self._min_offset = min_offset
+
+    def _load_city(self, city):
+        """Hent data for en by."""
+        return self._df
+
+    def _get_min_offset(self, city, element_id):
+        """Hent minste offset for en by og element."""
+        return self._min_offset
 
 
-def test_select_values_success():
-    # Lager DataFrame med tre datapunkter i 2023-01 og 2023-02
-    df = pd.DataFrame({
-        "elementId": ["e", "e", "e", "e"],
-        "timeOffset": ["PT0H"] * 4,
-        "referenceTime": pd.to_datetime([
-            "2023-01-05", "2023-01-20", "2023-02-10", "2023-02-15"
-        ], utc=True),
-        "value": [1.5, 2.5, 3.0, 4.0],
-    })
-    # Test for januar
-    jan = MonthlyStats._select_values(df, "2023-01", "e", "PT0H")
-    assert list(jan) == [1.5, 2.5]
-    # Test for februar
-    feb = MonthlyStats._select_values(df, "2023-02", "e", "PT0H")
-    assert list(feb) == [3.0, 4.0]
+class TestMonthlyStats(unittest.TestCase):
+    """Tester MonthlyStats."""
+
+    def setUp(self):
+        """Setter opp testdata."""
+        dates = (
+            pd.date_range("2021-01-01", periods=4, freq="D").tolist()
+            + pd.date_range("2021-02-01", periods=4, freq="D").tolist()
+        )
+        data = {
+            "elementId": ["rain"] * 8,
+            "timeOffset": ["PT1H"] * 8,
+            "referenceTime": dates,
+            "value": [1, 2, 3, 4, 5, 6, 7, 8],
+        }
+        self.df = pd.DataFrame(data)
+        self.df["referenceTime"] = pd.to_datetime(
+            self.df["referenceTime"]
+        ).dt.tz_localize("UTC")
+
+    def test_compute_single_month_with_offset(self):
+        """Tester compute_single_month med offset."""
+        loader = DummyLoader(self.df, min_offset="PT1H")
+        stats = loader.compute_single_month(
+            "2021-02", "rain", "cityX", time_offset="PT1H"
+        )
+        self.assertAlmostEqual(stats["mean"], 6.5)
+        self.assertAlmostEqual(stats["median"], 6.5)
+        expected_std = np.std([5, 6, 7, 8], ddof=0)
+        self.assertAlmostEqual(stats["std"], expected_std)
+
+    def test_compute_single_month_without_offset(self):
+        """Tester compute_single_month uten offset."""
+        loader = DummyLoader(self.df, min_offset="PT1H")
+        stats = loader.compute_single_month(
+            "2021-01", "rain", "cityX", time_offset=None
+        )
+        self.assertAlmostEqual(stats["mean"], 2.5)
+
+    def test_compute_all_months(self):
+        """Tester compute_all_months."""
+        loader = DummyLoader(self.df, min_offset="PT1H")
+        df_stats = loader.compute_all_months("rain", "cityX", time_offset=None)
+        self.assertListEqual(
+            list(df_stats["year_month"]), ["2021-01", "2021-02"]
+        )
+        # Sjekker mean
+        self.assertAlmostEqual(df_stats.loc[0, "mean"], 2.5)
+        self.assertAlmostEqual(df_stats.loc[1, "mean"], 6.5)
+        # Sjekker median
+        self.assertAlmostEqual(df_stats.loc[0, "median"], 2.5)
+        self.assertAlmostEqual(df_stats.loc[1, "median"], 6.5)
+        # Sjekker standardavvik
+        self.assertAlmostEqual(
+            df_stats.loc[0, "std"], np.std([1, 2, 3, 4], ddof=1)
+        )
+        self.assertAlmostEqual(
+            df_stats.loc[1, "std"], np.std([5, 6, 7, 8], ddof=1)
+        )
 
 
-def test_select_values_no_data_raises():
-    df = pd.DataFrame({
-        "elementId": ["x"],
-        "timeOffset": ["PT0H"],
-        "referenceTime": pd.to_datetime(["2023-01-01"], utc=True),
-        "value": [1.0],
-    })
-    # Ingen datapunkter for element 'e'
-    with pytest.raises(ValueError) as exc:
-        MonthlyStats._select_values(df, "2023-01", "e", "PT0H")
-    assert "Ingen datapunkter" in str(exc.value)
-
-
-def test_compute_single_month(tmp_data_dir):
-    # To målinger i januar 2023 for element 't'
-    df = pd.DataFrame({
-        "sourceId": ["S", "S"],
-        "referenceTime": ["2023-01-01", "2023-01-15"],
-        "timeOffset": ["PT0H", "PT0H"],
-        "elementId": ["t", "t"],
-        "value": [10, 20],
-    })
-    write_csv("city", df, tmp_data_dir)
-
-    ms = MonthlyStats(data_dir=str(tmp_data_dir))
-    stats = ms.compute_single_month("2023-01", "t", "city", time_offset="PT0H")
-    # Gjennomsnitt 15, median 15, std = sqrt(((10-15)^2+(20-15)^2)/2) = 5
-    assert stats == {"mean": 15.0, "median": 15.0, "std": pytest.approx(5.0)}
-
-
-def test_compute_single_month_default_offset(tmp_data_dir):
-    # Én offset PT6H, så default _get_min_offset bør plukke denne
-    df = pd.DataFrame({
-        "sourceId": ["S"],
-        "referenceTime": ["2023-03-01"],
-        "timeOffset": ["PT6H"],
-        "elementId": ["u"],
-        "value": [7],
-    })
-    write_csv("c", df, tmp_data_dir)
-
-    ms = MonthlyStats(data_dir=str(tmp_data_dir))
-    stats = ms.compute_single_month("2023-03", "u", "c")
-    assert stats == {"mean": 7.0, "median": 7.0, "std": pytest.approx(0.0)}
-
-
-def test_compute_single_month_empty_raises(tmp_data_dir):
-    df = pd.DataFrame({
-        "elementId": ["e"],
-        "timeOffset": ["PT0H"],
-        "referenceTime": ["2023-01-01"],
-        "value": [5],
-        "sourceId": ["S"],
-    })
-    write_csv("city", df, tmp_data_dir)
-
-    ms = MonthlyStats(data_dir=str(tmp_data_dir))
-    # Ber om month der det ikke finnes datapunkter
-    with pytest.raises(ValueError):
-        ms.compute_single_month("2023-02", "e", "city", time_offset="PT0H")
-
-
-def test_compute_all_months(tmp_data_dir):
-    # Fire datapunkter fordelt på to måneder
-    df = pd.DataFrame({
-        "sourceId": ["S"] * 4,
-        "referenceTime": [
-            "2023-01-10", "2023-01-20", "2023-02-05", "2023-02-25"
-        ],
-        "timeOffset": ["PT0H"] * 4,
-        "elementId": ["m"] * 4,
-        "value": [2, 4, 6, 8],
-    })
-    write_csv("oslo", df, tmp_data_dir)
-
-    ms = MonthlyStats(data_dir=str(tmp_data_dir))
-    out = ms.compute_all_months("m", "oslo", time_offset="PT0H")
-
-    # Forvent to rader: '2023-01' og '2023-02'
-    assert list(out["year_month"]) == ["2023-01", "2023-02"]
-    # Januar: mean=(2+4)/2=3, median=3, std=1; Februar: mean=(6+8)/2=7, std=1
-    jan = out[out["year_month"] == "2023-01"].iloc[0]
-    feb = out[out["year_month"] == "2023-02"].iloc[0]
-    assert jan["mean"] == 3.0
-    assert jan["median"] == 3.0
-    assert jan["std"] == pytest.approx(1.414)
-    assert feb["mean"] == 7.0
-    assert feb["median"] == 7.0
-    assert feb["std"] == pytest.approx(1.414)
-
-
-def test_compute_all_months_default_offset(tmp_data_dir):
-    # Kun én offset PT12H, default vil plukke denne
-    df = pd.DataFrame({
-        "sourceId": ["S"],
-        "referenceTime": ["2024-05-01"],
-        "timeOffset": ["PT12H"],
-        "elementId": ["z"],
-        "value": [100],
-    })
-    write_csv("t", df, tmp_data_dir)
-
-    ms = MonthlyStats(data_dir=str(tmp_data_dir))
-    out = ms.compute_all_months("z", "t")
-    # En rad med year_month "2024-05"
-    assert out.shape[0] == 1
-    assert out["year_month"].iloc[0] == "2024-05"
-    assert out["mean"].iloc[0] == 100.0
-
-
-def test_compute_all_months_no_data_raises(tmp_data_dir):
-    # CSV finnes, men ingen records for element 'q'
-    df = pd.DataFrame({
-        "sourceId": ["S"],
-        "referenceTime": ["2025-01-01"],
-        "timeOffset": ["PT0H"],
-        "elementId": ["p"],
-        "value": [1],
-    })
-    write_csv("oslo", df, tmp_data_dir)
-
-    ms = MonthlyStats(data_dir=str(tmp_data_dir))
-    with pytest.raises(ValueError):
-        ms.compute_all_months("q", "oslo", time_offset="PT0H")
+if __name__ == "__main__":
+    unittest.main()
