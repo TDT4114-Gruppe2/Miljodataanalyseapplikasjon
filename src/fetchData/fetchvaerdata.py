@@ -1,6 +1,7 @@
 """Henter værdata fra met.no og lagrer det i en JSON-fil."""
 
 import json
+import os
 import requests
 
 
@@ -42,7 +43,9 @@ class WeatherFetcher:
         response.raise_for_status()
         return response.json()
 
-    def write_json_to_file(self, json_data: dict, filename: str) -> None:
+    def write_json_to_file(
+        self, json_data: dict, filename: str
+    ) -> None:
         """
         Skriver JSON-data til angitt fil med innrykk for lesbarhet.
 
@@ -50,6 +53,10 @@ class WeatherFetcher:
             json_data (dict): Data som skal serialiseres til JSON.
             filename (str): Filbane for output-filen.
         """
+        dirpath = os.path.dirname(filename)
+        if dirpath:
+            os.makedirs(dirpath, exist_ok=True)
+
         with open(filename, "w", encoding="utf-8") as f:
             encoder = json.JSONEncoder(indent=4)
             for chunk in encoder.iterencode(json_data):
