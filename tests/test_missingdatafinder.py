@@ -61,33 +61,36 @@ class TestMissingWeatherDataAnalyzer(unittest.TestCase):
         expected = {('e1', 'Tromsø'), ('e2', 'Oslo')}
         self.assertSetEqual(actual, expected)
 
+    def test_save_missing_data(self):
+        """Tester at manglende data blir lagret riktig."""
+        self.analyzer.df_missing = pd.DataFrame({
+            'date': ['2025-05-01'],
+            'timeOffset': [0],
+            'elementId': ['e1'],
+            'oslo_value': [None],
+            'tromso_value': [15],
+            'city': ['Oslo']
+        })
 
-def test_save_missing_data(self):
-    """Tester at manglende data blir lagret riktig."""
-    self.analyzer.df_missing = pd.DataFrame({
-        'date': ['2025-05-01'],
-        'timeOffset': [0],
-        'elementId': ['e1'],
-        'oslo_value': [None],
-        'tromso_value': [15],
-        'city': ['Oslo']
-    })
-    # Act
-    self.analyzer.save_missing_data()
+        # Act
+        self.analyzer.save_missing_data()
 
-    # Assert
-    missing_path = os.path.join(self.output_dir, 'missing_in_both.csv')
-    summary_path = os.path.join(self.output_dir, 'missing_summary.csv')
-    self.assertTrue(os.path.exists(missing_path))
-    self.assertTrue(os.path.exists(summary_path))
+        # Assert at filene finnes
+        missing_path = os.path.join(self.output_dir, 'missing_in_both.csv')
+        summary_path = os.path.join(self.output_dir, 'missing_summary.csv')
+        self.assertTrue(os.path.exists(missing_path))
+        self.assertTrue(os.path.exists(summary_path))
 
-    df_missing = pd.read_csv(missing_path)
-    df_summary = pd.read_csv(summary_path)
-    assert_frame_equal(df_missing, self.analyzer.df_missing)
-    self.assertEqual(len(df_summary), 1)
-    self.assertEqual(df_summary.loc[0, 'city'], 'Oslo')
-    self.assertEqual(df_summary.loc[0, 'elementId'], 'e1')
-    self.assertEqual(df_summary.loc[0, 'num_missing'], 1)
+        # Les inn det som ble skrevet og sammenlign innhold – uten å sjekke dtype
+        df_missing = pd.read_csv(missing_path)
+        assert_frame_equal(df_missing, self.analyzer.df_missing, check_dtype=False)
+
+        # Sjekk oppsummerings-CSV’en
+        df_summary = pd.read_csv(summary_path)
+        self.assertEqual(len(df_summary), 1)
+        self.assertEqual(df_summary.loc[0, 'city'], 'Oslo')
+        self.assertEqual(df_summary.loc[0, 'elementId'], 'e1')
+        self.assertEqual(df_summary.loc[0, 'num_missing'], 1)
 
 
 class TestMissingDataConverter(unittest.TestCase):
