@@ -92,55 +92,84 @@ class WeatherDataPipeline:
             input_file,
             parse_dates=["referenceTime"],
         )
-        # Ekstraher timer fra timeOffset (PT#H)
-        hours = (
-            df_long["timeOffset"]
-            .str.extract(r"PT(\d+)H")[0]
-            .fillna(0)
-            .astype(int)
+
+        # Ekstraher timer og minutter
+        time_parts = df_long["timeOffset"].str.extract(
+            r"PT(?:(\d+)H)?(?:(\d+)M)?"
         )
+        hours = (
+            pd.to_numeric(
+                time_parts[0],
+                errors="coerce",
+            )
+            .fillna(0)
+            .astype("Int64")
+        )
+        minutes = (
+            pd.to_numeric(
+                time_parts[1],
+                errors="coerce",
+            )
+            .fillna(0)
+            .astype("Int64")
+        )
+
         # Lag full datetime-kolonne
         df_long["datetime"] = (
             df_long["referenceTime"]
             + pd.to_timedelta(hours, unit="h")
+            + pd.to_timedelta(minutes, unit="m")
         )
 
-        # Hold på originale nøkkel-par for å filtrere etterpå
-        orig_keys = df_long[["datetime", "elementId"]].drop_duplicates()
-
-        # Pivot til bredt format og interpolering
-        wide = df_long.pivot(
-            index="datetime",
-            columns="elementId",
-            values="value",
+        # Pivot til bredt format
+        wide = (
+            df_long
+            .pivot(
+                index="datetime",
+                columns="elementId",
+                values="value",
+            )
+            .sort_index()
+            .infer_objects()
         )
-        wide = wide.infer_objects()
+
+        # Imputer
         filled = self.impute_wide(wide)
 
         # Melt tilbake til langt format
-        out = filled.reset_index().melt(
-            id_vars=["datetime"],
-            var_name="elementId",
-            value_name="value",
+        out = (
+            filled
+            .reset_index()
+            .melt(
+                id_vars=["datetime"],
+                var_name="elementId",
+                value_name="value",
+            )
         )
 
-        # Merge for å beholde bare original-radene
-        out = out.merge(
-            orig_keys.assign(_keep=1),
-            on=["datetime", "elementId"],
-            how="left"
-        )
-        out = out.loc[out["_keep"] == 1].drop(columns=["_keep"])
-
-        # Legg til øvrige kolonner
+        # Legg på metadata
         out["sourceId"] = self._infer_source_id(input_file)
         out["referenceTime"] = (
             out["datetime"].dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
         )
-        out["timeOffset"] = out["datetime"].apply(self._format_time_offset)
+        out["timeOffset"] = out["datetime"].apply(
+            self._format_time_offset
+        )
         out["unit"] = out["elementId"].apply(self._map_unit)
 
-        # Skriv til CSV i riktig kolonne-rekkefølge
+        # Sorter rader
+        out = (
+            out
+            .sort_values(
+                by=["referenceTime", "timeOffset", "elementId"]
+            )
+            .reset_index(drop=True)
+        )
+
+        # Avrund til 3 desimaler
+        out["value"] = out["value"].round(3)
+
+        # Skriv til CSV
         cols = [
             "sourceId",
             "referenceTime",
@@ -149,4 +178,8 @@ class WeatherDataPipeline:
             "value",
             "unit",
         ]
-        out[cols].to_csv(output_file, index=False)
+        out[cols].to_csv(
+            output_file,
+            index=False,
+            float_format="%.3f",
+        )
