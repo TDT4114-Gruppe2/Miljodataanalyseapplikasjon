@@ -1,118 +1,105 @@
-"""Tester interpolering.py."""
-
 import os
 import pandas as pd
 import tempfile
 import unittest
 
-from pandas.testing import assert_frame_equal
+from datetime import timezone
 
-from src.interpolateData.interpolation import WeatherDataPipeline
-import src.interpolateData.interpolation as interp_mod
-
-
-class DummyDecomp:
-    """Klasse for å simulere uten ekte data."""
-
-    def __init__(self, trend, resid, seasonal):
-        """Initialiserer DummyDecomp."""
-        self.trend = trend
-        self.resid = resid
-        self.seasonal = seasonal
+from src.analyseData.basedata import DataLoader
 
 
-class TestWeatherDataPipeline(unittest.TestCase):
-    """Tester WeatherDataPipeline-funksjonalitet."""
+class TestDataLoader(unittest.TestCase):
+    """Test DataLoader."""
 
     def setUp(self):
-        """Setter opp testmiljøet med en pipeline."""
-        self.pipeline = WeatherDataPipeline(
-            small_gap_days=1, seasonal_period=2, model='additive')
+        """Lag en midlertidig katalog for testing."""
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.data_dir = self.tmpdir.name
+        self.template = DataLoader.filename_template
 
-    def test_infer_source_id(self):
-        """Tester at kilder blir tolket riktig fra filnavn."""
-        self.assertEqual(self.pipeline._infer_source_id(
-            'path/to/oslo_data.csv'), 'SN18700:0')
-        self.assertEqual(self.pipeline._infer_source_id(
-            'TROMSO-file.csv'), 'SN90450:0')
-        with self.assertRaises(ValueError):
-            self.pipeline._infer_source_id('unknown.csv')
+    def tearDown(self):
+        """Fjern den midlertidige katalogen."""
+        self.tmpdir.cleanup()
 
-    def test_format_time_offset(self):
-        """Tester at tidsforskyvning formateres riktig."""
-        dt = pd.Timestamp('2025-05-01T13:30:00')
-        self.assertEqual(self.pipeline._format_time_offset(dt), 'PT13H30M')
-        dt2 = pd.Timestamp('2025-05-01T00:00:00')
-        self.assertEqual(self.pipeline._format_time_offset(dt2), 'PT0H')
+    def _write_csv(self, city, df):
+        """Skriv df til CSV i testkatalogen ved å bruke DataLoader-malen."""
+        filename = self.template.format(city=city)
+        path = os.path.join(self.data_dir, filename)
+        df.to_csv(path, index=False)
+        return path
 
-    def test_map_unit(self):
-        """Tester at enheter er riktige."""
-        self.assertEqual(self.pipeline._map_unit(
-            'max(air_temperature P1D)'), 'degC')
-        self.assertEqual(self.pipeline._map_unit(
-            'mean(wind_speed P1D)'), 'm/s')
-        self.assertEqual(self.pipeline._map_unit(
-            'sum(precipitation_amount P1D)'), 'mm')
-        self.assertEqual(self.pipeline._map_unit('other_element'), '')
+    def test_load_nonexistent_raises(self):
+        """Sjekk at DataLoader kaster feil om filen ikke finnes."""
+        loader = DataLoader(self.data_dir)
+        with self.assertRaises(FileNotFoundError) as cm:
+            loader._load_city('missingcity')
+        self.assertIn('Fant ikke datafil', str(cm.exception))
 
-    def test_impute_wide_no_missing(self):
-        """Tester at breddeformat uten manglende verdier ikke endres."""
-        dates = pd.date_range('2025-01-01', periods=3, freq='D')
-        wide = pd.DataFrame({'e1': [1, 2, 3], 'e2': [4, 5, 6]}, index=dates)
-        out = self.pipeline.impute_wide(wide)
-        assert_frame_equal(out, wide)
+    def test_load_missing_referencetime_column(self):
+        """Sjekk at DataLoader kaster feil om referenceTime mangler."""
+        df = pd.DataFrame({'foo': [1, 2, 3]})
+        self._write_csv('testcity', df)
+        loader = DataLoader(self.data_dir)
+        with self.assertRaises(KeyError) as cm:
+            loader._load_city('testcity')
+        self.assertIn("'referenceTime' mangler", str(cm.exception))
 
-    def test_impute_wide_with_missing_and_seasonal(self):
-        """Tester at breddeformat med manglende verdier interpoleres riktig."""
-        def fake_decompose(series,
-                           model=None, period=None, extrapolate_trend=None):
-            """Simulerer decomp uten ekte data."""
-            return DummyDecomp(trend=series,
-                               resid=pd.Series(0, index=series.index),
-                               seasonal=pd.Series(0, index=series.index))
-        interp_mod.seasonal_decompose = fake_decompose
+    def test_load_converts_referencetime(self):
+        """Sjekk at referenceTime konverteres til datetime med UTC."""
+        df = pd.DataFrame({
+            'referenceTime': ['2021-01-01T00:00:00Z', '2021-01-02T12:30:00Z'],
+            'elementId': ['e1', 'e2'],
+            'timeOffset': ['PT1H', 'PT2H'],
+            'value': ['10', '20'],
+        })
+        self._write_csv('city1', df)
+        loader = DataLoader(self.data_dir)
+        loaded = loader._load_city('city1')
+        self.assertIn('referenceTime', loaded.columns)
+        self.assertTrue(pd.api.types.is_datetime64_ns_dtype(
+            loaded['referenceTime']))
+        self.assertEqual(loaded['referenceTime'].dt.tz, timezone.utc)
 
-        dates = pd.date_range('2025-01-01', periods=3, freq='D')
-        wide = pd.DataFrame({'e1': [1, None, 3]}, index=dates)
-        out = self.pipeline.impute_wide(wide)
-        self.assertAlmostEqual(out.loc[dates[1], 'e1'], 2.0)
+    def test_get_min_offset_normal(self):
+        """Lag en df med gyldig timeOffset."""
+        df = pd.DataFrame({
+            'referenceTime': ['2021-01-01T00:00:00Z']*3,
+            'elementId': ['e']*3,
+            'timeOffset': ['PT5H', 'PT2H', 'PT10H'],
+            'value': ['1', '2', '3'],
+        })
+        self._write_csv('cityA', df)
+        loader = DataLoader(self.data_dir)
+        result = loader._get_min_offset('cityA', 'e')
+        self.assertEqual(result, 'PT2H')
 
-    def test_process_end_to_end(self):
-        """Tester hele prosessen fra CSV til utdata."""
-        with tempfile.TemporaryDirectory() as tmp:
-            input_path = os.path.join(tmp, 'oslo.csv')
-            output_path = os.path.join(tmp, 'out.csv')
-            df = pd.DataFrame({
-                'referenceTime': ['2025-05-01T00:00:00.000Z',
-                                  '2025-05-01T01:00:00.000Z'],
-                'timeOffset': ['PT0H', 'PT1H'],
-                'elementId': ['max(air_temperature P1D)',
-                              'min(air_temperature P1D)'],
-                'value': [10, 6]
-            })
-            df.to_csv(input_path, index=False)
+    def test_get_min_offset_no_offsets_raises(self):
+        """Lag en df uten gyldige timeOffset for elementId."""
+        df = pd.DataFrame({
+            'referenceTime': ['2021-01-01T00:00:00Z'],
+            'elementId': ['other'],
+            'timeOffset': ['PT1H'],
+            'value': ['5'],
+        })
+        self._write_csv('cityB', df)
+        loader = DataLoader(self.data_dir)
+        with self.assertRaises(ValueError) as cm:
+            loader._get_min_offset('cityB', 'e')
+        self.assertIn('Ingen timeOffset funnet', str(cm.exception))
 
-            def fake_decompose(series, model=None,
-                               period=None, extrapolate_trend=None):
-                """Simulerer decomp uten ekte data."""
-                return DummyDecomp(trend=series.fillna(method='ffill'),
-                                   resid=pd.Series(0, index=series.index),
-                                   seasonal=pd.Series(0, index=series.index))
-            interp_mod.seasonal_decompose = fake_decompose
-
-            pipeline = WeatherDataPipeline()
-            pipeline.process(input_path, output_path)
-
-            self.assertTrue(os.path.exists(output_path))
-            out = pd.read_csv(output_path)
-            unique_pairs = out.drop_duplicates(
-                subset=['referenceTime', 'elementId'])
-            self.assertEqual(len(unique_pairs), 2)
-            self.assertListEqual(out.columns.tolist(), [
-                                 'sourceId', 'referenceTime',
-                                 'timeOffset', 'elementId', 'value', 'unit'])
-            self.assertEqual(out.loc[0, 'sourceId'], 'SN18700:0')
-            self.assertIn(out.loc[0, 'unit'], ['degC'])
+    def test_get_min_offset_invalid_format_raises(self):
+        """Lag en df med ugyldige format for timeOffset."""
+        df = pd.DataFrame({
+            'referenceTime': ['2021-01-01T00:00:00Z']*2,
+            'elementId': ['e', 'e'],
+            'timeOffset': ['BAD', 'WRONG'],
+            'value': ['1', '2'],
+        })
+        self._write_csv('cityC', df)
+        loader = DataLoader(self.data_dir)
+        with self.assertRaises(ValueError) as cm:
+            loader._get_min_offset('cityC', 'e')
+        self.assertIn('Fant ingen gyldige PT', str(cm.exception))
 
 
 if __name__ == '__main__':
